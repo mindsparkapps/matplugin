@@ -1,7 +1,9 @@
 /* ===== MathViz · Pestañas y lecciones ===== */
 
-/* Versión, a la izquierda del logo */
+/* Versión, en el extremo derecho de la barra (no se oculta en las lecciones) */
 .app-version {
+    flex-shrink: 0;
+    margin-left: 10px;
     padding: 3px 8px;
     border-radius: 999px;
     border: 1px solid var(--border-glow);
@@ -44,6 +46,8 @@ body.lesson-mode #control-panel,
 body.lesson-mode #formula-display,
 body.lesson-mode #info-overlay,
 body.lesson-mode .header-right { display: none !important; }
+/* Sin el panel del 3D, la barra superior usa todo el ancho (en una ventana angosta de ZenBan no se corta) */
+body.lesson-mode #app-header { left: 0; padding: 0 14px; }
 
 #lesson-area {
     position: fixed;
@@ -204,7 +208,8 @@ body.lesson-mode .header-right { display: none !important; }
 .lq-card.is-fail .lq-grade { color: #ff8a8a; }
 .lq-failed { margin: 4px 0 10px 20px; }
 .lq-progress { margin-top: 18px; }
-.lq-progress[hidden] { display: none; }
+.lq-progress-body[hidden], .lq-empty[hidden] { display: none; }
+.lq-empty { padding: 12px 14px; border-radius: var(--radius-md); border: 1px dashed var(--border-glow); color: var(--text-secondary); }
 .lq-summary p { margin: 4px 0; }
 .lq-topic-row { display: grid; grid-template-columns: minmax(150px, 230px) 1fr auto; gap: 10px; align-items: center; margin: 6px 0; font-size: 14px; }
 .lq-bar-track { height: 10px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; }

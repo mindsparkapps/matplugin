@@ -71,13 +71,16 @@
       <div class="lq-questions"></div>
       <div class="lq-result"></div>
       <div class="lq-progress">
-        <h3>📈 Tu progreso</h3>
-        <div class="two-col"><div class="plot-wrap"><canvas class="lq-chart"></canvas></div><div class="lq-summary"></div></div>
-        <h3>🔍 Dónde te equivocas más</h3>
-        <div class="lq-topics"></div>
-        <h3>🗂 Historial de intentos</h3>
-        <div class="table-scroll"><table class="vtable lq-history"></table></div>
-        <div class="btn-row"><button type="button" class="lbtn ghost" data-lq="clear">Borrar el historial</button></div>
+        <h3>📈 Tu progreso · 🗂 historial de intentos</h3>
+        <p class="lq-empty">Todavía no terminas ningún intento. Cuando respondas las 10 preguntas, aquí aparecerán tu <b>nota</b>, el <b>gráfico</b> de cómo vas mejorando, los <b>temas donde más te equivocas</b> y el <b>historial</b> de todos tus intentos (con botón para revisar cada uno). Si cambias de intento a medias, también se guarda.</p>
+        <div class="lq-progress-body">
+          <div class="two-col"><div class="plot-wrap"><canvas class="lq-chart"></canvas></div><div class="lq-summary"></div></div>
+          <h3>🔍 Dónde te equivocas más</h3>
+          <div class="lq-topics"></div>
+          <h3>🗂 Historial de intentos</h3>
+          <div class="table-scroll"><table class="vtable lq-history"></table></div>
+          <div class="btn-row"><button type="button" class="lbtn ghost" data-lq="clear">Borrar el historial</button></div>
+        </div>
       </div>`;
     const chart = new Plot(root.querySelector('.lq-chart'), { xMin: 0, xMax: 6, yMin: 0.5, yMax: 7.5, aspect: 0.62, step: 1 });
 
@@ -134,7 +137,8 @@
       } else {
         const qs = generate(templates, state.current.seed);
         const answered = Object.keys(state.current.answers).length;
-        title.innerHTML = `<b>Intento ${attemptNo}</b> · ${answered} de ${qs.length} respondidas · cada intento trae números nuevos`;
+        const lastTxt = last ? ` · intentos guardados: <b>${state.attempts.length}</b> (última nota <b class="${last.nota >= 4 ? 'good' : 'bad'}">${gradeTxt(last.nota)}</b>)` : '';
+        title.innerHTML = `<b>Intento ${attemptNo}</b> · ${answered} de ${qs.length} respondidas · cada intento trae números nuevos${lastTxt}`;
         qBox.innerHTML = questionsHtml(qs, state.current.answers, false);
         if (state.current.saved && last) {
           const failed = last.failed.map(i => `<li><a href="#" data-goto="${i}">Pregunta ${i + 1}</a> · ${esc(qs[i].topic)}</li>`).join('');
@@ -155,7 +159,9 @@
     function renderProgress() {
       const at = state.attempts;
       const summary = root.querySelector('.lq-summary');
-      root.querySelector('.lq-progress').hidden = !at.length;
+      // Siempre a la vista: sin intentos terminados, explica qué va a aparecer
+      root.querySelector('.lq-empty').hidden = at.length > 0;
+      root.querySelectorAll('.lq-progress-body').forEach(el => { el.hidden = !at.length; });
       if (!at.length) return;
       const notas = at.map(a => a.nota);
       const best = Math.max(...notas);
