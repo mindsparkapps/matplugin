@@ -227,9 +227,8 @@
 
   <section class="card" id="ln-desafios">
     <h2><span class="num">13</span> Desafíos</h2>
-    <p>Pon a prueba lo que aprendiste. Al responder verás la explicación.</p>
+    <p>Pon a prueba lo que aprendiste. <b>Cada intento trae números nuevos</b>, así que no sirve memorizar: hay que entender. Al responder verás la explicación, y al terminar tu <b>nota</b> (de 1,0 a 7,0; con el 60 % se aprueba con 4,0). Todos tus intentos quedan guardados: puedes revisar en qué fallaste y ver en el gráfico cómo vas mejorando.</p>
     <div id="ln-quiz"></div>
-    <div class="quiz-score" id="ln-quiz-score"></div>
   </section>
 
   <section class="card" id="ln-glosario">
@@ -261,20 +260,79 @@
     n: { name: 'n — la ordenada al origen (coeficiente de posición)', text: 'Es el número que va solo, sin x. Dice dónde corta la recta al eje y: en el punto (0, n). Si n = 0, la recta pasa por el origen y la función es lineal.', ex: 'En el taxi: n = 3, lo que pagas aunque no avances.' }
   };
 
-  const QUIZ = [
-    { q: 'En y = 4x + 7, ¿cuál es la pendiente?', a: ['7', '4', '11', 'x'], ok: 1, why: 'La pendiente es el número que multiplica a x: 4.' },
-    { q: 'En y = 4x + 7, ¿dónde corta la recta al eje y?', a: ['(0, 4)', '(7, 0)', '(0, 7)', '(4, 7)'], ok: 2, why: 'Corta el eje y en (0, n) y aquí n = 7.' },
-    { q: '¿Cuál de estas funciones es una proporción directa?', a: ['y = 3x + 1', 'y = 5x', 'y = 12 ÷ x', 'y = 2'], ok: 1, why: 'Solo y = 5x pasa por el origen: y ÷ x da siempre 5.' },
-    { q: 'Una recta tiene pendiente −2. ¿Cómo es?', a: ['Sube', 'Baja', 'Es horizontal', 'Es vertical'], ok: 1, why: 'Con pendiente negativa, cada paso a la derecha la recta baja 2.' },
-    { q: 'Si y = 2x − 3, ¿cuánto vale y cuando x = 5?', a: ['7', '13', '4', '10'], ok: 0, why: 'Primero multiplicas: 2·5 = 10. Después restas 3: 10 − 3 = 7.' },
-    { q: 'Una recta pasa por (0, 1) y (2, 5). ¿Cuál es su pendiente?', a: ['4', '2', '3', '5'], ok: 1, why: 'm = (5 − 1) ÷ (2 − 0) = 4 ÷ 2 = 2.' },
-    { q: '6 obreros pintan una casa en 4 días. Si son 12 obreros (el doble), ¿cuántos días tardan?', a: ['8 días', '2 días', '4 días', '6 días'], ok: 1, why: 'Es proporción inversa: si los obreros se duplican, los días se reducen a la mitad. 6·4 = 24 = 12·2.' },
-    { q: '¿Dónde corta el eje x la recta y = 2x − 6?', a: ['x = 6', 'x = −3', 'x = 3', 'x = 2'], ok: 2, why: 'Cuando y = 0: 0 = 2x − 6 → 2x = 6 → x = 3.' },
-    { q: 'Las rectas y = 3x + 1 y y = 3x − 5 son…', a: ['Perpendiculares', 'Paralelas', 'Iguales', 'Se cortan en el origen'], ok: 1, why: 'Tienen la misma pendiente (3), así que tienen la misma inclinación y nunca se cruzan.' },
-    { q: '¿Por qué y = 10 ÷ x no es una función afín?', a: ['Porque tiene una división', 'Porque su gráfica es una curva, no una recta', 'Porque k es muy grande', 'Sí es afín'], ok: 1, why: 'Las funciones lineales y afines siempre dibujan rectas. y = 10 ÷ x dibuja una hipérbola.' }
+  // ----- Desafíos: cada plantilla arma una pregunta con números nuevos en cada intento (ver quiz.js) -----
+  const N = (v) => (v < 0 ? `−${-v}` : String(v));             // número con signo menos tipográfico
+  const P = (v) => (v < 0 ? `(${N(v)})` : String(v));          // entre paréntesis si es negativo
+  const eqTxt = (m, n) => {                                     // "y = 3x − 2"
+    const mx = m === 0 ? '' : m === 1 ? 'x' : m === -1 ? '−x' : `${N(m)}x`;
+    if (!mx) return `y = ${N(n)}`;
+    return n === 0 ? `y = ${mx}` : `y = ${mx} ${n < 0 ? '−' : '+'} ${Math.abs(n)}`;
+  };
+  const QUIZ_TEMPLATES = [
+    { topic: 'Pendiente en la ecuación', make(r) {
+      const m = r.nz(-9, 9), n = r.nz(-9, 9);
+      return { q: `En <b>${eqTxt(m, n)}</b>, ¿cuál es la pendiente?`, correct: N(m), wrong: [N(n), N(m + n), N(-m)],
+        why: `La pendiente es el número que multiplica a x: ${N(m)}. El ${N(n)} que va solo es n (dónde corta el eje y).` };
+    } },
+    { topic: 'Corte con el eje y', make(r) {
+      const m = r.nz(-6, 6), n = r.nz(-9, 9);
+      return { q: `¿En qué punto corta la recta <b>${eqTxt(m, n)}</b> al eje y?`, correct: `(0, ${N(n)})`, wrong: [`(${N(n)}, 0)`, `(0, ${N(m)})`, `(${N(m)}, ${N(n)})`],
+        why: `Al eje y se llega con x = 0: y = ${N(m)}·0 ${n < 0 ? '−' : '+'} ${Math.abs(n)} = ${N(n)}. El punto es (0, ${N(n)}).` };
+    } },
+    { topic: 'Proporción directa', make(r) {
+      const k = r.int(2, 9), c = r.nz(1, 9);
+      return { q: '¿Cuál de estas funciones es una <b>proporción directa</b>?', correct: `y = ${k}x`, wrong: [`y = ${k}x + ${c}`, `y = ${k * 6} ÷ x`, `y = ${c}`],
+        why: `Solo y = ${k}x pasa por el origen: y ÷ x da siempre ${k}. La afín (con + ${c}) no pasa por (0, 0) y y = ${k * 6} ÷ x es proporción inversa.` };
+    } },
+    { topic: 'Signo de la pendiente', make(r) {
+      const kind = r.pick(['sube', 'baja', 'baja', 'sube', 'horizontal']);
+      const m = kind === 'sube' ? r.int(1, 7) : kind === 'baja' ? -r.int(1, 7) : 0;
+      const n = r.int(-5, 5);
+      const right = { sube: 'Sube (de izquierda a derecha)', baja: 'Baja (de izquierda a derecha)', horizontal: 'Es horizontal' }[kind];
+      return { q: `¿Cómo es la recta <b>${eqTxt(m, n)}</b>?`, correct: right,
+        wrong: ['Sube (de izquierda a derecha)', 'Baja (de izquierda a derecha)', 'Es horizontal', 'Es vertical'].filter(x => x !== right),
+        why: m > 0 ? `La pendiente ${N(m)} es positiva: cada paso a la derecha, sube ${m}.` : m < 0 ? `La pendiente ${N(m)} es negativa: cada paso a la derecha, baja ${-m}.` : 'No hay x (la pendiente es 0): y vale siempre lo mismo, así que es horizontal.' };
+    } },
+    { topic: 'Calcular y para un x', make(r) {
+      const m = r.nz(-6, 6), n = r.nz(-9, 9), x = r.nz(-5, 6);
+      const y = m * x + n;
+      return { q: `Si <b>${eqTxt(m, n)}</b>, ¿cuánto vale y cuando x = ${N(x)}?`, correct: N(y), wrong: [N(m * (x + n)), N(m * x - n), N(m + x + n)],
+        why: `Primero multiplicas: ${N(m)}·${P(x)} = ${N(m * x)}. Después ${n < 0 ? 'restas' : 'sumas'} ${Math.abs(n)}: ${N(m * x)} ${n < 0 ? '−' : '+'} ${Math.abs(n)} = ${N(y)}.` };
+    } },
+    { topic: 'Pendiente con dos puntos', make(r) {
+      const m = r.nz(-5, 5), x1 = r.int(-4, 3), dx = r.int(1, 4), y1 = r.int(-6, 6);
+      const x2 = x1 + dx, y2 = y1 + m * dx;
+      return { q: `Una recta pasa por <b>(${N(x1)}, ${N(y1)})</b> y <b>(${N(x2)}, ${N(y2)})</b>. ¿Cuál es su pendiente?`, correct: N(m), wrong: [N(m * dx), N(-m), N(dx), N(y2 - y1 + 1)],
+        why: `m = (${N(y2)} − ${P(y1)}) ÷ (${N(x2)} − ${P(x1)}) = ${N(y2 - y1)} ÷ ${dx} = ${N(m)}.` };
+    } },
+    { topic: 'Proporción inversa', make(r) {
+      const w = r.int(2, 6), d = r.pick([4, 6, 8, 12]), f = r.pick([2, 2, 3, 4]);
+      if ((d % f) !== 0) return this.make(r);
+      return { q: `${w} obreros pintan una casa en ${d} días. Si son ${w * f} obreros (${f === 2 ? 'el doble' : f === 3 ? 'el triple' : 'cuatro veces más'}), ¿cuántos días tardan?`, correct: `${d / f} días`,
+        wrong: [`${d * f} días`, `${d} días`, `${d - f} días`],
+        why: `Es proporción inversa: obreros · días = ${w}·${d} = ${w * d}, y eso no cambia. Con ${w * f} obreros: ${w * d} ÷ ${w * f} = ${d / f} días.` };
+    } },
+    { topic: 'Corte con el eje x (raíz)', make(r) {
+      const m = r.nz(-5, 5), root = r.nz(-6, 6), n = -m * root;
+      return { q: `¿Dónde corta el eje x la recta <b>${eqTxt(m, n)}</b>?`, correct: `x = ${N(root)}`, wrong: [`x = ${N(-root)}`, `x = ${N(n)}`, `x = ${N(m)}`],
+        why: `Con y = 0: 0 = ${N(m)}x ${n < 0 ? '−' : '+'} ${Math.abs(n)} → ${N(-n)} = ${N(m)}x → x = ${N(-n)} ÷ ${P(m)} = ${N(root)}.` };
+    } },
+    { topic: 'Rectas paralelas', make(r) {
+      const m = r.nz(-6, 6), n = r.nz(-8, 8);
+      let c = r.nz(-8, 8); if (c === n) c = n + 3;
+      return { q: `¿Cuál de estas rectas es <b>paralela</b> a <b>${eqTxt(m, n)}</b>?`, correct: eqTxt(m, c), wrong: [eqTxt(n, m), eqTxt(-m, n), eqTxt(m + 2, n)],
+        why: `Las rectas paralelas tienen la misma pendiente (${N(m)}) y distinto corte con el eje y: ${eqTxt(m, c)}.` };
+    } },
+    { topic: 'Problema de proporción directa', make(r) {
+      const price = r.int(2, 9) * 100, a = r.int(2, 4), b = r.int(5, 9);
+      return { q: `${a} kg de manzanas cuestan $${(price * a).toLocaleString('es-CL')}. Si el precio por kilo es siempre el mismo, ¿cuánto cuestan ${b} kg?`, correct: `$${(price * b).toLocaleString('es-CL')}`,
+        wrong: [`$${(price * a + b * 100).toLocaleString('es-CL')}`, `$${(price * (a + b)).toLocaleString('es-CL')}`, `$${Math.round(price * a * a / b).toLocaleString('es-CL')}`],
+        why: `Es proporción directa: 1 kg cuesta $${(price * a).toLocaleString('es-CL')} ÷ ${a} = $${price.toLocaleString('es-CL')} (eso es k). Entonces ${b} kg cuestan ${b} · $${price.toLocaleString('es-CL')} = $${(price * b).toLocaleString('es-CL')}.` };
+    } }
   ];
 
-  const state = { m: 2, n: 1, k: 12, kx: 3, A: { x: 1, y: 3 }, B: { x: 3, y: 7 }, answers: {} };
+  const state = { m: 2, n: 1, k: 12, kx: 3, A: { x: 1, y: 3 }, B: { x: 3, y: 7 } };
+  let quiz = null;
   let plots = {};
   let stop = {}; // animaciones en curso
 
@@ -645,34 +703,9 @@
     update();
   }
 
-  // ----- 13. Desafíos -----
+  // ----- 13. Desafíos (preguntas al azar, historial, notas y progreso: lessons/quiz.js) -----
   function setupQuiz(root) {
-    const box = root.querySelector('#ln-quiz');
-    const render = () => {
-      box.innerHTML = QUIZ.map((q, i) => {
-        const ans = state.answers[i];
-        return `<div class="quiz-q${ans !== undefined ? (ans === q.ok ? ' is-ok' : ' is-bad') : ''}" data-q="${i}">
-          <p><b>${i + 1}.</b> ${q.q}</p>
-          <div class="quiz-a">${q.a.map((a, j) => `<button type="button" data-a="${j}" ${ans !== undefined ? 'disabled' : ''} class="${ans !== undefined && j === q.ok ? 'is-right' : ''}${ans === j && j !== q.ok ? ' is-wrong' : ''}">${a}</button>`).join('')}</div>
-          ${ans !== undefined ? `<p class="why">${ans === q.ok ? '✅ ¡Correcto!' : '❌ Casi.'} ${q.why}</p>` : ''}
-        </div>`;
-      }).join('');
-      const done = Object.keys(state.answers).length;
-      const good = QUIZ.filter((q, i) => state.answers[i] === q.ok).length;
-      root.querySelector('#ln-quiz-score').innerHTML = done ? `Llevas <b>${good}</b> de <b>${done}</b> correctas${done === QUIZ.length ? (good === QUIZ.length ? ' 🏆 ¡Perfecto!' : ' · <button type="button" class="lbtn ghost" id="ln-quiz-reset">Intentar de nuevo</button>') : ''}` : '';
-      const reset = root.querySelector('#ln-quiz-reset');
-      if (reset) reset.addEventListener('click', () => { state.answers = {}; render(); MathLessons.changed(); });
-    };
-    box.addEventListener('click', (e) => {
-      const b = e.target.closest('[data-a]');
-      if (!b) return;
-      const i = Number(b.closest('[data-q]').dataset.q);
-      state.answers[i] = Number(b.dataset.a);
-      render();
-      MathLessons.changed();
-    });
-    setupQuiz.render = render;
-    render();
+    quiz = LessonQuiz(root.querySelector('#ln-quiz'), { id: 'lineal', templates: QUIZ_TEMPLATES, onChange: () => MathLessons.changed() });
   }
 
   let rootEl = null;
@@ -710,12 +743,12 @@
       });
     },
     getState() {
-      return { m: state.m, n: state.n, k: state.k, kx: state.kx, A: state.A, B: state.B, answers: state.answers };
+      return { m: state.m, n: state.n, k: state.k, kx: state.kx, A: state.A, B: state.B, quiz: quiz ? quiz.getState() : null };
     },
     setState(s) {
       if (!s || !rootEl) return;
       Object.assign(state, {
-        A: s.A || state.A, B: s.B || state.B, answers: s.answers || {},
+        A: s.A || state.A, B: s.B || state.B,
         m: s.m ?? state.m, n: s.n ?? state.n, k: s.k ?? state.k, kx: s.kx ?? state.kx
       });
       setupLab.inputs.mIn.value = state.m;
@@ -724,7 +757,7 @@
       setupInversa.inputs.xIn.value = state.kx;
       setupLab.update();
       setupInversa.update();
-      setupQuiz.render();
+      if (quiz && s.quiz) quiz.setState(s.quiz);
       if (setupSlope.draw) setupSlope.draw();
     }
   });

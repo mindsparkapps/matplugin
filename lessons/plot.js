@@ -11,12 +11,19 @@
       this.opts = Object.assign({ xMin: -6, xMax: 6, yMin: -6, yMax: 6, aspect: 1, step: 1, labels: true }, opts);
       this.painter = null;
       this.resize();
-      this._ro = new ResizeObserver(() => { this.resize(); this.redraw(); });
+      // Al cambiar el ancho del contenedor se vuelve a dibujar (en el siguiente cuadro, para no encadenar avisos)
+      this._ro = new ResizeObserver(() => requestAnimationFrame(() => {
+        const parent = this.canvas.parentElement || this.canvas;
+        if (Math.abs((parent.clientWidth || 0) - this._lastParentW) < 1) return;
+        this.resize();
+        this.redraw();
+      }));
       this._ro.observe(canvas.parentElement || canvas);
     }
 
     resize() {
       const parent = this.canvas.parentElement || this.canvas;
+      this._lastParentW = parent.clientWidth || 0;
       const w = Math.max(220, Math.min(parent.clientWidth || 400, 720));
       const h = Math.round(w * this.opts.aspect);
       const dpr = window.devicePixelRatio || 1;

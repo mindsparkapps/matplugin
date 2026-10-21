@@ -1,5 +1,16 @@
 /* ===== MathViz · Pestañas y lecciones ===== */
 
+/* Versión, a la izquierda del logo */
+.app-version {
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border-glow);
+    background: rgba(108, 99, 255, 0.12);
+    color: #b9b4ff;
+    font: 600 11px var(--font-mono);
+    white-space: nowrap;
+}
+
 /* Pestañas en la barra superior */
 #lesson-tabs {
     display: flex;
@@ -180,6 +191,30 @@ body.lesson-mode .header-right { display: none !important; }
 .quiz-a button.is-wrong { opacity: 1; border-color: #ff8a8a; background: rgba(255,138,138,0.15); }
 .why { margin-top: 8px; font-size: 14px; }
 .quiz-score { margin-top: 8px; font-size: 16px; }
+
+/* Desafíos: intentos, nota, progreso */
+.lq-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border-radius: var(--radius-md); background: rgba(108,99,255,0.1); border: 1px solid var(--border-glow); }
+.lq-title { font-size: 15px; }
+.lq-topic { display: inline-block; padding: 1px 8px; margin-right: 4px; border-radius: 999px; background: rgba(255,255,255,0.07); color: var(--text-secondary); font-size: 12px; font-weight: 600; vertical-align: 2px; }
+.lq-card { display: flex; gap: 18px; align-items: flex-start; margin: 14px 0; padding: 16px; border-radius: var(--radius-md); border: 2px solid; }
+.lq-card.is-pass { border-color: rgba(125,255,179,0.6); background: rgba(125,255,179,0.07); }
+.lq-card.is-fail { border-color: rgba(255,138,138,0.6); background: rgba(255,138,138,0.07); }
+.lq-grade { font: 800 46px var(--font-mono); line-height: 1; min-width: 90px; text-align: center; }
+.lq-card.is-pass .lq-grade { color: #7dffb3; }
+.lq-card.is-fail .lq-grade { color: #ff8a8a; }
+.lq-failed { margin: 4px 0 10px 20px; }
+.lq-progress { margin-top: 18px; }
+.lq-progress[hidden] { display: none; }
+.lq-summary p { margin: 4px 0; }
+.lq-topic-row { display: grid; grid-template-columns: minmax(150px, 230px) 1fr auto; gap: 10px; align-items: center; margin: 6px 0; font-size: 14px; }
+.lq-bar-track { height: 10px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; }
+.lq-bar-track i { display: block; height: 100%; border-radius: inherit; }
+.lq-bar-track i.is-bad { background: #ff8a8a; }
+.lq-bar-track i.is-mid { background: #FFD166; }
+.lq-bar-track i.is-ok { background: #7dffb3; width: 4px !important; }
+.lq-small { padding: 4px 10px; font-size: 12px; }
+.lq-history td small { color: var(--text-secondary); }
+@media (max-width: 600px) { .lq-topic-row { grid-template-columns: 1fr auto; } .lq-topic-row .lq-bar-track { grid-column: 1 / -1; grid-row: 2; } .lq-card { flex-direction: column; } }
 
 /* Glosario */
 .glossary { display: grid; grid-template-columns: minmax(150px, 230px) 1fr; gap: 6px 16px; }
