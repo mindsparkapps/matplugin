@@ -23,8 +23,10 @@
 
     resize() {
       const parent = this.canvas.parentElement || this.canvas;
+      // Con el capítulo oculto no hay ancho que medir: se espera a que se muestre
+      if (!parent.clientWidth && this.w) return;
       this._lastParentW = parent.clientWidth || 0;
-      const w = Math.max(220, Math.min(parent.clientWidth || 400, 720));
+      const w = Math.max(120, Math.min(parent.clientWidth || 400, 720));
       const h = Math.round(w * this.opts.aspect);
       const dpr = window.devicePixelRatio || 1;
       this.canvas.style.width = `${w}px`;

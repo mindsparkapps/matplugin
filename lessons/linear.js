@@ -16,20 +16,42 @@
     return `<span class="eq${big ? ' is-big' : ''}"><span class="t-y">y</span> = ${xPart}${nPart}</span>`;
   }
 
-  const LESSON_HTML = `
-  <header class="lesson-hero">
-    <div class="hero-badge">📏 Lección</div>
-    <h1>Función lineal y función afín</h1>
-    <p class="hero-sub">Aprende qué es una función, cómo se dibuja una recta, qué significa cada parte de su ecuación y cómo se relaciona con la <b>proporción directa</b> y la <b>proporción inversa</b>. Todo con gráficas que puedes mover.</p>
-    <nav class="lesson-index" aria-label="Índice">
-      <a href="#ln-maquina">1. La máquina</a><a href="#ln-lineal">2. Lineal</a><a href="#ln-afin">3. Afín</a>
-      <a href="#ln-partes">4. Cada parte</a><a href="#ln-pendiente">5. Pendiente</a><a href="#ln-ejes">6. Cortes con los ejes</a>
-      <a href="#ln-lab">7. Laboratorio</a><a href="#ln-directa">8. Prop. directa</a><a href="#ln-inversa">9. Prop. inversa</a>
-      <a href="#ln-compara">10. Comparación</a><a href="#ln-dospuntos">11. Con dos puntos</a><a href="#ln-errores">12. Errores comunes</a>
-      <a href="#ln-desafios">13. Desafíos</a><a href="#ln-glosario">14. Glosario</a>
-    </nav>
-  </header>
+  // Capítulos de la lección, agrupados por bloques (menú lateral y mapa de la portada: chapters.js)
+  const INTRO = 'Aprende qué es una función, cómo se dibuja una recta, qué significa cada parte de su ecuación y cómo se relaciona con la <b>proporción directa</b> y la <b>proporción inversa</b>. Son 14 capítulos cortos, con gráficas que puedes mover, animaciones y desafíos con nota al final. Puedes ir en orden o saltar al que quieras desde el menú.';
+  const GROUPS = [
+    { name: '🚀 Empezar', chapters: [
+      { id: 'ln-maquina', title: '¿Qué es una función?', desc: 'La máquina de números: entra x, sale y.' }
+    ] },
+    { name: '📏 Las funciones', chapters: [
+      { id: 'ln-lineal', title: 'Función lineal', desc: 'y = m·x: los lápices y la recta que pasa por el origen.' },
+      { id: 'ln-afin', title: 'Función afín', desc: 'y = m·x + n: el taxi y la recta desplazada.' },
+      { id: 'ln-partes', title: 'Cada parte de la ecuación', desc: 'Qué significan y, =, m, x, + y n.' }
+    ] },
+    { name: '🔍 La recta por dentro', chapters: [
+      { id: 'ln-pendiente', title: 'La pendiente', desc: 'La escalera: cuánto sube la recta. Con puntos que mueves.' },
+      { id: 'ln-ejes', title: 'Cortes con los ejes', desc: 'Dónde cruza el eje y y dónde el eje x, paso a paso.' }
+    ] },
+    { name: '🧪 Practicar', chapters: [
+      { id: 'ln-lab', title: 'Laboratorio', desc: 'Arma tu propia recta con m y n, y mírala dibujarse.' }
+    ] },
+    { name: '⚖️ Proporciones', chapters: [
+      { id: 'ln-directa', title: 'Proporción directa', desc: 'Si una se duplica, la otra también: ¡es una función lineal!' },
+      { id: 'ln-inversa', title: 'Proporción inversa', desc: 'Si una se duplica, la otra se reduce a la mitad: la hipérbola.' },
+      { id: 'ln-compara', title: 'Comparación', desc: 'Lineal, afín e inversa, lado a lado.' }
+    ] },
+    { name: '🛠 Herramientas', chapters: [
+      { id: 'ln-dospuntos', title: 'Ecuación con dos puntos', desc: 'Encuentra la ecuación en 3 pasos.' },
+      { id: 'ln-errores', title: 'Errores comunes', desc: 'Las trampas más típicas y cómo evitarlas.' }
+    ] },
+    { name: '🏆 Evaluación', chapters: [
+      { id: 'ln-desafios', title: 'Desafíos', desc: 'Preguntas con números nuevos en cada intento, nota y progreso.' }
+    ] },
+    { name: '📖 Consulta', chapters: [
+      { id: 'ln-glosario', title: 'Glosario', desc: 'Todas las palabras importantes, explicadas.' }
+    ] }
+  ];
 
+  const LESSON_HTML = `
   <section class="card" id="ln-maquina">
     <h2><span class="num">1</span> ¿Qué es una función? La máquina de números</h2>
     <p>Imagina una <b>máquina</b>: tú le metes un número, la máquina sigue siempre la <b>misma regla</b> y te devuelve otro número. Eso es una <b>función</b>.</p>
@@ -333,6 +355,8 @@
 
   const state = { m: 2, n: 1, k: 12, kx: 3, A: { x: 1, y: 3 }, B: { x: 3, y: 7 } };
   let quiz = null;
+  let nav = null;      // capítulos (chapters.js)
+  let pending = null;  // estado guardado que llegó antes de abrir la lección
   let plots = {};
   let stop = {}; // animaciones en curso
 
@@ -709,16 +733,22 @@
   }
 
   let rootEl = null;
+  // Fuera de ZenBan, el avance se guarda en este navegador (se lee antes de registrarse: el inicio lo muestra)
+  const LOCAL_KEY = 'mathviz_lesson_lineal';
+  try {
+    const saved = JSON.parse(localStorage.getItem(LOCAL_KEY) || 'null');
+    if (saved && saved.nav) pending = { nav: saved.nav };
+  } catch (e) {}
   MathLessons.register({
     id: 'lineal',
-    label: 'Lineal y afín',
+    label: 'Función lineal y afín',
     icon: '📏',
+    description: 'Qué es una función, la recta y su ecuación, la pendiente, los cortes con los ejes y la proporción directa e inversa. Para 12 años en adelante.',
     render(container) {
       rootEl = container;
       container.innerHTML = LESSON_HTML;
       container.querySelector('#ln-mx').addEventListener('input', () => renderMachine(container));
       renderMachine(container, false);
-      setTimeout(() => renderMachine(container), 300);
       setupLinealAfin(container);
       setupParts(container);
       setupSlope(container);
@@ -726,27 +756,28 @@
       setupDirecta(container);
       setupInversa(container);
       setupQuiz(container);
-      // El índice se desplaza dentro de la lección
-      container.querySelector('.lesson-index').addEventListener('click', (e) => {
-        const a = e.target.closest('a[href^="#"]');
-        if (!a) return;
-        e.preventDefault();
-        const target = container.querySelector(a.getAttribute('href'));
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Un capítulo a la vez, con menú lateral, portada, avance y Anterior / Siguiente
+      nav = LessonChapters(container, {
+        lesson: this, intro: INTRO, groups: GROUPS,
+        onChange: () => { saveLocal(); MathLessons.changed(); }
       });
-      container.addEventListener('click', (e) => {
-        const a = e.target.closest('.card a[href^="#ln-"]');
-        if (!a) return;
-        e.preventDefault();
-        const target = container.querySelector(a.getAttribute('href'));
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Lo guardado antes de abrir la lección (de ZenBan o de este navegador)
+      if (pending) { const s = pending; pending = null; this.setState(s); }
+      // La máquina se anima al entrar a su capítulo
+      container.querySelector('.lx-side').addEventListener('click', (e) => {
+        if (e.target.closest('[data-ch="ln-maquina"]')) setTimeout(() => renderMachine(container), 150);
       });
     },
+    onShow() { if (nav) nav.onShow(); },
+    goTo(chapter) { if (nav) nav.goTo(chapter); },
     getState() {
-      return { m: state.m, n: state.n, k: state.k, kx: state.kx, A: state.A, B: state.B, quiz: quiz ? quiz.getState() : null };
+      if (!rootEl) return pending;
+      return { m: state.m, n: state.n, k: state.k, kx: state.kx, A: state.A, B: state.B, quiz: quiz ? quiz.getState() : null, nav: nav ? nav.getState() : null };
     },
     setState(s) {
-      if (!s || !rootEl) return;
+      if (!s) return;
+      // Antes de abrir la lección se guarda para aplicarlo al abrirla (la portada del inicio igual muestra el avance)
+      if (!rootEl) { pending = s; return; }
       Object.assign(state, {
         A: s.A || state.A, B: s.B || state.B,
         m: s.m ?? state.m, n: s.n ?? state.n, k: s.k ?? state.k, kx: s.kx ?? state.kx
@@ -759,6 +790,25 @@
       setupInversa.update();
       if (quiz && s.quiz) quiz.setState(s.quiz);
       if (setupSlope.draw) setupSlope.draw();
+      if (nav && s.nav) nav.setState(s.nav);
+    },
+    // Para la tarjeta de la página de inicio
+    summary() {
+      const s = rootEl ? this.getState() : pending;
+      const total = GROUPS.reduce((n, g) => n + g.chapters.length, 0);
+      const visitedIds = (s && s.nav && s.nav.visited) || [];
+      const attempts = (s && s.quiz && s.quiz.attempts) || (() => { try { return (JSON.parse(localStorage.getItem('mathviz_quiz_lineal') || 'null') || {}).attempts || []; } catch (e) { return []; } })();
+      const all = GROUPS.flatMap(g => g.chapters);
+      const next = all.find(c => !visitedIds.includes(c.id));
+      return {
+        visited: visitedIds.length, total,
+        best: attempts.length ? Math.max(...attempts.map(a => a.nota)) : null,
+        current: visitedIds.length && next ? next.title : null
+      };
     }
   });
+
+  function saveLocal() {
+    try { localStorage.setItem(LOCAL_KEY, JSON.stringify({ nav: nav ? nav.getState() : null })); } catch (e) {}
+  }
 })();
