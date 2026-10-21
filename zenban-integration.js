@@ -12,7 +12,8 @@
       const el = document.getElementById(id);
       if (el) inputs[id] = el.type === 'checkbox' ? el.checked : el.value;
     });
-    return { inputs };
+    // Pestaña abierta y lo que se movió en cada lección
+    return { inputs, lessons: window.MathLessons ? MathLessons.getState() : null };
   }
 
   const titleFor = (inputs) => `MathViz 3D · f(x) = ${(inputs && inputs['function-input']) || ''}`;
@@ -30,6 +31,7 @@
     });
     const fn = document.getElementById('function-input');
     if (fn) fn.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    if (state.lessons && window.MathLessons) MathLessons.setState(state.lessons);
     restoring = false;
     ZenBanPlugin.setTitle(titleFor(state.inputs));
   });
@@ -44,6 +46,7 @@
       ZenBanPlugin.setTitle(titleFor(state.inputs));
     }, 500);
   };
+  if (window.MathLessons) MathLessons.onChange(save);
   document.addEventListener('input', save, true);
   document.addEventListener('change', save, true);
   document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('.preset-btn')) save(); }, true);
