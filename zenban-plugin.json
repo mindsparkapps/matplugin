@@ -1,0 +1,8 @@
+{
+  "name": "MathViz 3D",
+  "icon": "📈",
+  "description": "Graficador 3D de funciones, derivadas e integrales",
+  "entry": "index.html",
+  "width": 900,
+  "height": 600
+}
