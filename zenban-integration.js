@@ -18,7 +18,13 @@
 
   const titleFor = (inputs) => `MathViz 3D · f(x) = ${(inputs && inputs['function-input']) || ''}`;
 
+  // No se guarda nada hasta recibir el estado guardado en ZenBan: si no, un clic mientras carga pisaría
+  // el progreso con uno vacío. (Si ZenBan no contesta en 5 s, se guarda igual.)
+  let gotInit = false;
+  setTimeout(() => { gotInit = true; }, 5000);
+
   ZenBanPlugin.onInit(({ state }) => {
+    gotInit = true;
     if (!state || !state.inputs) return;
     restoring = true;
     ids.forEach(id => {
@@ -37,15 +43,22 @@
   });
 
   let timer = null;
-  const save = () => {
-    if (restoring) return;
+  const sendNow = () => {
     clearTimeout(timer);
-    timer = setTimeout(() => {
-      const state = collect();
-      ZenBanPlugin.setState(state);
-      ZenBanPlugin.setTitle(titleFor(state.inputs));
-    }, 500);
+    timer = null;
+    const state = collect();
+    ZenBanPlugin.setState(state);
+    ZenBanPlugin.setTitle(titleFor(state.inputs));
   };
+  const save = () => {
+    if (restoring || !gotInit) return;
+    clearTimeout(timer);
+    timer = setTimeout(sendNow, 250);
+  };
+  // Al ocultarse o cerrarse la página, lo pendiente se manda enseguida
+  const flush = () => { if (timer) sendNow(); };
+  window.addEventListener('pagehide', flush);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
   if (window.MathLessons) MathLessons.onChange(save);
   document.addEventListener('input', save, true);
   document.addEventListener('change', save, true);
