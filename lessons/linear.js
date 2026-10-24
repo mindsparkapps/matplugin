@@ -109,6 +109,7 @@
       <button data-part="y" class="t-y">y</button><button data-part="eq">=</button><button data-part="m" class="t-m">m</button><button data-part="por">·</button><button data-part="x" class="t-x">x</button><button data-part="mas">+</button><button data-part="n" class="t-n">n</button>
     </div>
     <div class="part-card" id="ln-part-card"></div>
+    <div class="eq-example" id="ln-eq-example"></div>
     <div class="tip"><b>Leer una ecuación en voz alta:</b> <span class="eq"><span class="t-y">y</span> = <span class="t-m">2</span><span class="t-x">x</span> + <span class="t-n">3</span></span> se lee "y es igual a dos x más tres" y quiere decir: <i>"para saber y, multiplica x por 2 y después súmale 3"</i>. Ojo: primero se multiplica y después se suma.</div>
   </section>
 
@@ -389,6 +390,9 @@
   }
 
   // ----- Tablas -----
+  // Une una tabla con su gráfica (plot.js): el punto tocado se pinta en la tabla y la fila tocada se marca
+  const linkTable = Plot.linkTable;
+
   function tableHtml(rows, cols) {
     return `<thead><tr>${cols.map(c => `<th>${c.h}</th>`).join('')}</tr></thead><tbody>${rows.map((r, i) => `<tr data-row="${i}">${cols.map(c => `<td>${c.v(r)}</td>`).join('')}</tr>`).join('')}</tbody>`;
   }
@@ -441,17 +445,69 @@
   }
 
   // ----- 4. Partes -----
+  // Ejemplo debajo de la ecuación general: al tocar una parte se destaca su valor en el ejemplo
+  const EXAMPLES = [
+    { m: 2, n: 3, x: 4, what: 'El taxi: $3 por subirte y $2 por cada km', xName: 'km', yName: 'pagas' },
+    { m: 3, n: 0, x: 5, what: 'La bicicleta: 3 metros por segundo', xName: 'segundos', yName: 'metros' },
+    { m: -2, n: 10, x: 3, what: 'Una vela de 10 cm que se acorta 2 cm por hora', xName: 'horas', yName: 'cm de vela' },
+    { m: 0.5, n: -1, x: 6, what: 'Una recta cualquiera', xName: 'x', yName: 'y' }
+  ];
   function setupParts(root) {
     const card = root.querySelector('#ln-part-card');
+    const exBox = root.querySelector('#ln-eq-example');
+    let current = 'm';
+    let exIdx = 0;
+
+    const exSays = (k, e) => {
+      const y = e.m * e.x + e.n;
+      return {
+        y: `<b>y</b> es el resultado: con x = ${f(e.x)}, y = <b>${f(y)}</b> (${e.yName}).`,
+        eq: '<b>=</b> dice que y vale lo mismo que la cuenta de la derecha.',
+        m: `<b>m = ${f(e.m)}</b>: cada vez que x aumenta 1, y ${e.m > 0 ? `sube ${f(e.m)}` : e.m < 0 ? `baja ${f(abs(e.m))}` : 'no cambia'}.`,
+        por: `<b>${f(e.m)}·x</b> significa "${f(e.m)} por x": con x = ${f(e.x)} da ${f(e.m)}·${f(e.x)} = ${f(e.m * e.x)}.`,
+        x: `<b>x</b> es lo que eliges tú (${e.xName}): en el ejemplo probamos x = <b>${f(e.x)}</b>.`,
+        mas: e.n === 0 ? 'Aquí n = 0, así que no se suma nada: es una función <b>lineal</b> (pasa por el origen).'
+          : e.n < 0 ? `Como n es negativo, el <b>+</b> se ve como <b>−</b>: se resta ${f(abs(e.n))}.` : `Después de multiplicar, se <b>suma</b> ${f(e.n)}.`,
+        n: `<b>n = ${f(e.n)}</b>: cuando x = 0, y = ${f(e.n)}. La recta corta el eje y en (0, ${f(e.n)}).`
+      }[k];
+    };
+
+    const renderExample = () => {
+      const e = EXAMPLES[exIdx];
+      const y = e.m * e.x + e.n;
+      const op = e.n < 0 ? '−' : '+';
+      const nTok = e.n === 0 ? '' : ` <span data-ex="mas">${op}</span> <span data-ex="n" class="t-n">${f(abs(e.n))}</span>`;
+      exBox.innerHTML = `
+        <div class="ex-head"><span class="ex-label">Ejemplo</span><span class="ex-what">${e.what}</span><button type="button" class="lbtn ghost lq-small" data-ex-next>🎲 Otro ejemplo</button></div>
+        <div class="eq ex-eq"><span data-ex="y" class="t-y">y</span> <span data-ex="eq">=</span> <span data-ex="m" class="t-m">${f(e.m)}</span><span data-ex="por">·</span><span data-ex="x" class="t-x">x</span>${nTok}</div>
+        <div class="ex-calc">Si <span data-ex="x" class="t-x">x</span> = ${f(e.x)}: &nbsp;<span data-ex="y" class="t-y">y</span> = <span data-ex="m" class="t-m">${f(e.m)}</span><span data-ex="por">·</span><span data-ex="x" class="t-x">${f(e.x)}</span>${e.n === 0 ? '' : ` <span data-ex="mas">${op}</span> <span data-ex="n" class="t-n">${f(abs(e.n))}</span>`} = <span data-ex="y" class="t-y">${f(y)}</span></div>
+        <p class="ex-says"></p>`;
+      highlight();
+    };
+
+    const highlight = () => {
+      exBox.querySelectorAll('[data-ex]').forEach(s => s.classList.toggle('is-hl', s.dataset.ex === current));
+      // Si la parte no está en este ejemplo (n = 0), igual se explica
+      exBox.querySelector('.ex-says').innerHTML = `👉 ${exSays(current, EXAMPLES[exIdx])}`;
+    };
+
     const showPart = (k) => {
+      current = k;
       const p = PARTS[k];
       root.querySelectorAll('#ln-eq-parts button').forEach(b => b.classList.toggle('is-active', b.dataset.part === k));
       card.innerHTML = `<h4>${p.name}</h4><p>${p.text}</p><p class="ex">📌 ${p.ex}</p>`;
+      highlight();
     };
     root.querySelector('#ln-eq-parts').addEventListener('click', (e) => {
       const b = e.target.closest('[data-part]');
       if (b) showPart(b.dataset.part);
     });
+    exBox.addEventListener('click', (e) => {
+      if (e.target.closest('[data-ex-next]')) { exIdx = (exIdx + 1) % EXAMPLES.length; renderExample(); return; }
+      const s = e.target.closest('[data-ex]');
+      if (s) showPart(s.dataset.ex);
+    });
+    renderExample();
     showPart('m');
   }
 
@@ -834,6 +890,9 @@
       setupDirecta(container);
       setupInversa(container);
       setupQuiz(container);
+      // Gráfica ↔ tabla: el punto tocado se pinta en la tabla y la fila tocada se marca en la gráfica
+      [['lineal', '#ln-tab-lineal'], ['afin', '#ln-tab-afin'], ['lab', '#ln-tab-lab'], ['directa', '#ln-tab-directa'], ['inversa', '#ln-tab-inversa']]
+        .forEach(([k, sel]) => linkTable(plots[k], container.querySelector(sel)));
       // Un capítulo a la vez, con menú lateral, portada, avance y Anterior / Siguiente
       nav = LessonChapters(container, {
         lesson: this, intro: INTRO, groups: GROUPS,

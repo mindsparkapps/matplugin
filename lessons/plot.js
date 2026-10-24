@@ -105,8 +105,17 @@
       this.redraw();
     }
 
+    // Marca el punto de la curva en esa x (lo usan las tablas: tocar una fila marca su punto)
+    markX(x) {
+      const i = this._fns.findIndex(f => x >= f.xFrom - 1e-9 && x <= f.xTo + 1e-9 && isFinite(f.f(x)));
+      this.marker = i >= 0 ? { x, y: this._fns[i].f(x), fn: i } : null;
+      this.redraw();
+    }
+
     drawMarker() {
       const m = this.marker;
+      // Aviso a quien quiera saber qué punto está marcado (p. ej. para resaltar la fila de la tabla)
+      if (this.onMark) this.onMark(m);
       if (!m) return;
       // Si es de una curva, sigue a la curva cuando cambia (p. ej. al mover m o n)
       if (m.fn !== null && this._fns[m.fn]) m.y = this._fns[m.fn].f(m.x);
@@ -224,6 +233,23 @@
       if (stroke) { c.strokeStyle = stroke; c.lineWidth = 1.5; c.strokeRect(px, py, pw, ph); }
     }
 
+    // Polígono relleno (triángulos, cuadrados sobre los lados…): pts = [[x, y], …]
+    poly(pts, fill, stroke = null, width = 2) {
+      const c = this.ctx;
+      c.beginPath();
+      pts.forEach(([x, y], i) => (i ? c.lineTo(this.X(x), this.Y(y)) : c.moveTo(this.X(x), this.Y(y))));
+      c.closePath();
+      if (fill) { c.fillStyle = fill; c.fill(); }
+      if (stroke) { c.strokeStyle = stroke; c.lineWidth = width; c.setLineDash([]); c.stroke(); }
+    }
+
+    // Cuadradito del ángulo recto en el vértice v, entre las direcciones hacia p1 y p2
+    rightAngle(v, p1, p2, color = '#fff', size = 0.35) {
+      const u = (p) => { const dx = p[0] - v[0], dy = p[1] - v[1], l = Math.hypot(dx, dy) || 1; return [dx / l * size, dy / l * size]; };
+      const a = u(p1), b = u(p2);
+      this.poly([[v[0] + a[0], v[1] + a[1]], [v[0] + a[0] + b[0], v[1] + a[1] + b[1]], [v[0] + b[0], v[1] + b[1]], v], null, color, 1.6);
+    }
+
     point(x, y, color, label = '', { r = 6, labelColor = '#fff', dx = 10, dy = -10 } = {}) {
       const c = this.ctx;
       this._pts.push({ x, y });
@@ -266,6 +292,67 @@
 
     static ease(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
   }
+
+  // Une una tabla con su gráfica: al tocar un punto se pinta su fila (misma x en la primera columna)
+  // y al tocar una fila se marca su punto en la gráfica
+  const parseNum = (s) => Number(String(s).replace(/−/g, '-').replace(/[^\d,.\-]/g, '').replace(',', '.'));
+  Plot.linkTable = (plot, table) => {
+    if (!plot || !table) return;
+    plot.onMark = (mk) => {
+      table.querySelectorAll('tbody tr').forEach(tr => {
+        const x = parseNum(tr.cells[0] ? tr.cells[0].textContent : NaN);
+        tr.classList.toggle('is-mark', !!mk && Math.abs(x - mk.x) < 1e-6);
+      });
+    };
+    table.classList.add('is-linked');
+    table.addEventListener('click', (e) => {
+      const tr = e.target.closest('tbody tr');
+      if (!tr) return;
+      const x = parseNum(tr.cells[0].textContent);
+      if (isFinite(x)) plot.markX(x);
+    });
+    plot.redraw();
+  };
+
+  // Puntos que se arrastran con el dedo o el mouse (se ajustan a la grilla "snap")
+  //   plot.enableDrag(() => [{ id: 'A', x, y, lock: 'y' }], (id, x, y) => {…}, { snap: 0.5, onEnd })
+  //   lock: 'x' deja fija la x, 'y' deja fija la y
+  Plot.prototype.enableDrag = function (getPts, onDrag, { snap = 0.5, onEnd = null, bounds = null } = {}) {
+    const cv = this.canvas;
+    let dragging = null;
+    cv.style.touchAction = 'none';
+    const local = (e) => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    const nearest = (px, py) => {
+      let best = null;
+      getPts().forEach(p => {
+        const d = Math.hypot(this.X(p.x) - px, this.Y(p.y) - py);
+        if (d < 24 && (!best || d < best.d)) best = { d, p };
+      });
+      return best && best.p;
+    };
+    cv.addEventListener('pointerdown', (e) => {
+      const [px, py] = local(e);
+      const p = nearest(px, py);
+      if (!p) return;
+      dragging = p;
+      cv.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    cv.addEventListener('pointermove', (e) => {
+      const [px, py] = local(e);
+      if (!dragging) { cv.style.cursor = nearest(px, py) ? 'grab' : 'default'; return; }
+      const o = this.opts, b = bounds || { xMin: o.xMin, xMax: o.xMax, yMin: o.yMin, yMax: o.yMax };
+      let x = Math.round(this.toX(px) / snap) * snap, y = Math.round(this.toY(py) / snap) * snap;
+      x = Math.max(b.xMin, Math.min(b.xMax, x));
+      y = Math.max(b.yMin, Math.min(b.yMax, y));
+      if (dragging.lock === 'x') x = dragging.x;
+      if (dragging.lock === 'y') y = dragging.y;
+      onDrag(dragging.id, x, y);
+    });
+    const end = () => { if (dragging) { dragging = null; if (onEnd) onEnd(); } };
+    cv.addEventListener('pointerup', end);
+    cv.addEventListener('pointercancel', end);
+  };
 
   // Número bonito: 2, -1.5, 0.33…
   Plot.fmt = (v, d = 2) => {

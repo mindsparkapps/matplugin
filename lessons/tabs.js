@@ -8,7 +8,7 @@
 (function () {
   const lessons = [];
   const COMING = [
-    { icon: '📐', label: 'Función cuadrática', description: 'Parábolas, vértice, raíces y cómo se mueve la curva.' }
+    { icon: '⛲', label: 'Función cuadrática', description: 'Parábolas, vértice, raíces y cómo se mueve la curva.' }
   ];
   let view = 'home';
   let area = null;
