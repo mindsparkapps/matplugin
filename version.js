@@ -4,7 +4,8 @@
 // 1.3 versión a la derecha, progreso siempre visible y archivos con ?v= (sin copias viejas en caché)
 // 1.4 página de inicio, ruta arriba y lecciones por capítulos (menú lateral, portada, Anterior / Siguiente)
 // 1.5 el progreso dentro de ZenBan no se pierde (espera el estado guardado y guarda al cerrar)
-window.MATHVIZ_VERSION = '1.5';
+// 1.6 tocar la gráfica marca el punto con líneas a los ejes, cortes con los ejes con sus propios controles, menú con scroll
+window.MATHVIZ_VERSION = '1.6';
 (function () {
   const header = document.getElementById('app-header');
   if (!header) return;

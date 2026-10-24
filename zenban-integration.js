@@ -50,10 +50,12 @@
     ZenBanPlugin.setState(state);
     ZenBanPlugin.setTitle(titleFor(state.inputs));
   };
+  // Se manda enseguida (los cambios del mismo instante se juntan en uno): así no queda nada sin
+  // guardar si se cierra o recarga ZenBan justo después
   const save = () => {
     if (restoring || !gotInit) return;
     clearTimeout(timer);
-    timer = setTimeout(sendNow, 250);
+    timer = setTimeout(sendNow, 0);
   };
   // Al ocultarse o cerrarse la página, lo pendiente se manda enseguida
   const flush = () => { if (timer) sendNow(); };

@@ -10,6 +10,11 @@
       this.ctx = canvas.getContext('2d');
       this.opts = Object.assign({ xMin: -6, xMax: 6, yMin: -6, yMax: 6, aspect: 1, step: 1, labels: true }, opts);
       this.painter = null;
+      // Punto marcado al tocar la gráfica: líneas segmentadas hasta los ejes x e y, con sus coordenadas
+      this.marker = null;      // { x, y, fn: índice de la curva o null si es un punto }
+      this._fns = [];
+      this._pts = [];
+      this.setupTapMarker();
       this.resize();
       // Al cambiar el ancho del contenedor se vuelve a dibujar (en el siguiente cuadro, para no encadenar avisos)
       this._ro = new ResizeObserver(() => requestAnimationFrame(() => {
@@ -55,7 +60,71 @@
       c.clearRect(0, 0, this.w, this.h);
       c.fillStyle = '#0f0f1a';
       c.fillRect(0, 0, this.w, this.h);
+      this._fns = [];
+      this._pts = [];
       this.painter(c, this);
+      this.drawMarker();
+    }
+
+    // ----- Tocar la gráfica: marca el punto más cercano de una curva o un punto dibujado -----
+    setupTapMarker() {
+      const cv = this.canvas;
+      if (!cv.title) cv.title = 'Toca la línea o un punto para ver sus coordenadas';
+      let down = null;
+      cv.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY }; });
+      cv.addEventListener('pointerup', (e) => {
+        if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) { down = null; return; }
+        down = null;
+        const r = cv.getBoundingClientRect();
+        this.markAt(e.clientX - r.left, e.clientY - r.top);
+      });
+    }
+
+    markAt(px, py) {
+      const near = 18;
+      // Primero los puntos dibujados (A, B, los de la tabla…)
+      let best = null;
+      this._pts.forEach(p => {
+        const d = Math.hypot(this.X(p.x) - px, this.Y(p.y) - py);
+        if (d < near && (!best || d < best.d)) best = { d, x: p.x, y: p.y, fn: null };
+      });
+      // Si no, la curva más cercana en esa x
+      if (!best) {
+        const x = this.toX(px);
+        this._fns.forEach((f, i) => {
+          if (x < f.xFrom || x > f.xTo) return;
+          const y = f.f(x);
+          if (!isFinite(y)) return;
+          const d = Math.abs(this.Y(y) - py);
+          if (d < near && (!best || d < best.d)) best = { d, x, y, fn: i };
+        });
+        // Se ajusta a décimas para que los números se lean fácil
+        if (best) { best.x = Math.round(best.x * 10) / 10; best.y = this._fns[best.fn].f(best.x); }
+      }
+      this.marker = best ? { x: best.x, y: best.y, fn: best.fn } : null;
+      this.redraw();
+    }
+
+    drawMarker() {
+      const m = this.marker;
+      if (!m) return;
+      // Si es de una curva, sigue a la curva cuando cambia (p. ej. al mover m o n)
+      if (m.fn !== null && this._fns[m.fn]) m.y = this._fns[m.fn].f(m.x);
+      if (!isFinite(m.y)) return;
+      const c = this.ctx;
+      const col = '#FFD166';
+      this.segment(m.x, 0, m.x, m.y, col, 1.8, [6, 5]);
+      this.segment(0, m.y, m.x, m.y, col, 1.8, [6, 5]);
+      c.fillStyle = col;
+      [[m.x, 0], [0, m.y]].forEach(([x, y]) => { c.beginPath(); c.arc(this.X(x), this.Y(y), 4, 0, Math.PI * 2); c.fill(); });
+      const fx = Plot.fmt(m.x), fy = Plot.fmt(m.y);
+      this.text(`x = ${fx}`, m.x, 0, col, { dy: m.y >= 0 ? 18 : -8, align: 'center', size: 12 });
+      this.text(`y = ${fy}`, 0, m.y, col, { dx: m.x >= 0 ? -8 : 8, dy: 4, align: m.x >= 0 ? 'right' : 'left', size: 12 });
+      c.fillStyle = '#fff';
+      c.strokeStyle = col;
+      c.lineWidth = 3;
+      c.beginPath(); c.arc(this.X(m.x), this.Y(m.y), 7, 0, Math.PI * 2); c.fill(); c.stroke();
+      this.text(`(${fx}, ${fy})`, m.x, m.y, '#fff', { dx: 10, dy: -12, size: 13 });
     }
 
     grid() {
@@ -104,6 +173,7 @@
     fn(f, color, { width = 3, xFrom = this.opts.xMin, xTo = this.opts.xMax, progress = 1, dash = null } = {}) {
       const c = this.ctx;
       const end = xFrom + (xTo - xFrom) * progress;
+      this._fns.push({ f, xFrom, xTo: end });
       c.strokeStyle = color;
       c.lineWidth = width;
       c.lineCap = 'round';
@@ -156,6 +226,7 @@
 
     point(x, y, color, label = '', { r = 6, labelColor = '#fff', dx = 10, dy = -10 } = {}) {
       const c = this.ctx;
+      this._pts.push({ x, y });
       c.fillStyle = color;
       c.strokeStyle = '#0f0f1a';
       c.lineWidth = 2;

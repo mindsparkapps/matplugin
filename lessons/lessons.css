@@ -109,6 +109,8 @@
     .lx-menu-btn { display: block; flex: 1; }
     .lx-progress { flex: 0 0 auto; min-width: 0; }
     .lx-progress .lx-bar { width: 70px; flex: none; }
+    /* Menú de capítulos: con su propio desplazamiento para verlo completo en el celular */
+    .lx-side { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; padding-bottom: 40px; height: calc(100dvh - var(--header-height)); }
     .lx-side { position: fixed; top: var(--header-height); left: 0; bottom: 0; width: min(300px, 86vw); max-height: none; z-index: 60; border-radius: 0 var(--radius-lg) var(--radius-lg) 0; transform: translateX(-105%); transition: transform 0.2s; }
     .lx-menu-open .lx-side { transform: none; }
     .lx-side-close { display: block; position: sticky; top: 0; z-index: 1; margin-left: auto; border: none; border-radius: 50%; width: 34px; height: 34px; background: var(--bg-secondary); color: var(--text-primary); font-size: 24px; cursor: pointer; }
@@ -138,7 +140,7 @@ body.lesson-mode #app-header { left: 0; padding: 0 14px; }
     scroll-behavior: smooth;
 }
 #lesson-area[hidden] { display: none; }
-#lesson-area { overflow-x: hidden; }
+#lesson-area { overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y pinch-zoom; }
 
 .lesson-page { line-height: 1.6; font-size: 16px; }
 .lesson-page[hidden] { display: none; }

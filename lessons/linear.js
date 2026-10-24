@@ -133,10 +133,21 @@
 
   <section class="card" id="ln-ejes">
     <h2><span class="num">6</span> ¿Dónde corta la recta a los ejes?</h2>
+    <p>Mueve <span class="t-m">m</span> y <span class="t-n">n</span> y mira dónde cruza la recta cada eje. Con <b>▶ Encontrar los cortes</b> un punto recorre la recta y se detiene en cada cruce.</p>
+    <div class="lab-eq" id="ln-ejes-eq"></div>
+    <div class="lab-controls">
+      <label><span>Pendiente <b class="t-m">m</b></span><input type="range" id="ln-em" min="-5" max="5" step="0.5" value="1.5"><b id="ln-em-val" class="t-m">1,5</b></label>
+      <label><span>Corte <b class="t-n">n</b></span><input type="range" id="ln-en" min="-6" max="6" step="0.5" value="-3"><b id="ln-en-val" class="t-n">-3</b></label>
+    </div>
+    <div class="btn-row">
+      <button class="lbtn" id="ln-ejes-anim">▶ Encontrar los cortes</button>
+      <button class="lbtn ghost" id="ln-ejes-random">🎲 Otra recta</button>
+    </div>
     <div class="two-col">
       <div>
         <h3>Corte con el eje <span class="t-y">y</span> (ordenada al origen)</h3>
         <p>Es donde <span class="t-x">x = 0</span>. Reemplazando: y = m·0 + n = <span class="t-n">n</span>. Por eso el punto es <b>(0, <span class="t-n">n</span>)</b>. ¡La <span class="t-n">n</span> te dice directo dónde cruza!</p>
+        <div class="steps" id="ln-yint-steps"></div>
         <h3>Corte con el eje <span class="t-x">x</span> (raíz o cero)</h3>
         <p>Es donde <span class="t-y">y = 0</span>. Hay que resolver una ecuación:</p>
         <div class="steps" id="ln-root-steps"></div>
@@ -144,7 +155,6 @@
       </div>
       <div class="plot-wrap"><canvas id="ln-plot-ejes"></canvas></div>
     </div>
-    <p class="small">Esta sección usa la recta del <a href="#ln-lab">laboratorio</a>: cámbiala allá y mira cómo cambian estos pasos.</p>
   </section>
 
   <section class="card" id="ln-lab">
@@ -353,7 +363,7 @@
     } }
   ];
 
-  const state = { m: 2, n: 1, k: 12, kx: 3, A: { x: 1, y: 3 }, B: { x: 3, y: 7 } };
+  const state = { m: 2, n: 1, em: 1.5, en: -3, k: 12, kx: 3, A: { x: 1, y: 3 }, B: { x: 3, y: 7 } };
   let quiz = null;
   let nav = null;      // capítulos (chapters.js)
   let pending = null;  // estado guardado que llegó antes de abrir la lección
@@ -525,18 +535,109 @@
     });
   }
 
-  // ----- 6 y 7. Laboratorio y cortes con los ejes -----
-  function labView() {
-    const { m, n } = state;
+  // ----- 6. Cortes con los ejes (con sus propios m y n) y 7. Laboratorio -----
+  function labView(m = state.m, n = state.n) {
     const root = m !== 0 ? -n / m : null;
     const ys = [n, m * 4 + n, m * -4 + n, 0];
     return { xMin: -6, xMax: 6, yMin: Math.min(-6, ...ys) - 1, yMax: Math.max(6, ...ys) + 1, root };
   }
 
+  function setupEjes(root) {
+    const pe = new Plot(root.querySelector('#ln-plot-ejes'), { xMin: -6, xMax: 6, yMin: -8, yMax: 8, aspect: 1, step: 1 });
+    plots.ejes = pe;
+    const mIn = root.querySelector('#ln-em'), nIn = root.querySelector('#ln-en');
+
+    // stage: null (todo), o la animación: { x, found: ['y'] / ['y','x'] }
+    const draw = (anim = null) => {
+      const m = state.em, n = state.en;
+      const v = labView(m, n);
+      pe.setView({ yMin: Math.max(-14, v.yMin), yMax: Math.min(14, v.yMax), step: (v.yMax - v.yMin) > 18 ? 2 : 1 });
+      pe.draw(() => {
+        pe.grid(); pe.axes();
+        pe.fn(x => m * x + n, C.line, { width: 3 });
+        const found = anim ? anim.found : ['y', 'x'];
+        if (found.includes('y')) pe.point(0, n, C.n, `corta eje y: (0, ${f(n)})`);
+        if (found.includes('x') && v.root !== null && abs(v.root) <= 6) pe.point(v.root, 0, C.y, `corta eje x: (${f(v.root)}, 0)`, { dy: 20 });
+        if (anim) {
+          const y = m * anim.x + n;
+          pe.segment(anim.x, 0, anim.x, y, 'rgba(255,255,255,0.4)', 1.5, [4, 4]);
+          pe.segment(0, y, anim.x, y, 'rgba(255,255,255,0.4)', 1.5, [4, 4]);
+          pe.point(anim.x, y, '#fff', `(${f(anim.x, 1)}, ${f(y, 1)})`, { r: 8 });
+          if (anim.msg) pe.text(anim.msg, -5.8, pe.opts.yMax - 0.6, '#FFD166', { size: 14 });
+        }
+      });
+    };
+
+    const steps = () => {
+      const m = state.em, n = state.en;
+      root.querySelector('#ln-ejes-eq').innerHTML = eqHtml(m, n, { big: true });
+      root.querySelector('#ln-em-val').textContent = f(m);
+      root.querySelector('#ln-en-val').textContent = f(n);
+      root.querySelector('#ln-yint-steps').innerHTML = `
+        <p>1) Pon x = 0: &nbsp; y = ${f(m)} · 0 ${sgn(n)} ${f(abs(n))}</p>
+        <p>2) ${f(m)} · 0 = 0, así que: &nbsp; y = <b class="t-n">${f(n)}</b></p>
+        <p class="result">La recta corta el eje y en (0, <b>${f(n)}</b>).</p>`;
+      const stepsEl = root.querySelector('#ln-root-steps');
+      if (m === 0) {
+        stepsEl.innerHTML = n === 0 ? '<p>Con m = 0 y n = 0 la recta es el propio eje x (y = 0): lo toca en todas partes.</p>'
+          : `<p>Como m = 0, y = ${f(n)} siempre. La recta es horizontal y <b>nunca</b> corta el eje x.</p>`;
+        return;
+      }
+      stepsEl.innerHTML = `
+        <p>1) Pon y = 0: &nbsp; 0 = ${f(m)}x ${sgn(n)} ${f(abs(n))}</p>
+        <p>2) Pasa ${n === 0 ? 'nada' : `el ${f(abs(n))} al otro lado (${n > 0 ? 'restando' : 'sumando'})`}: &nbsp; ${f(-n)} = ${f(m)}x</p>
+        <p>3) Divide por ${f(m)}: &nbsp; x = ${f(-n)} ÷ ${m < 0 ? `(${f(m)})` : f(m)} = <b class="t-y">${f(-n / m)}</b></p>
+        <p class="result">La recta corta el eje x en (<b>${f(-n / m)}</b>, 0).</p>`;
+    };
+
+    const update = () => {
+      state.em = Number(mIn.value);
+      state.en = Number(nIn.value);
+      steps();
+      draw();
+    };
+    const onInput = () => { cancel('ejes'); update(); MathLessons.changed(); };
+    mIn.addEventListener('input', onInput);
+    nIn.addEventListener('input', onInput);
+
+    // Un punto recorre la recta: se detiene en el eje y (x = 0) y después en el eje x (y = 0)
+    root.querySelector('#ln-ejes-anim').addEventListener('click', () => {
+      cancel('ejes');
+      const m = state.em, n = state.en;
+      const r = m !== 0 ? -n / m : null;
+      const hasRoot = r !== null && abs(r) <= 6;
+      const start = -6;
+      const firstStop = 0;
+      const secondStop = hasRoot ? r : null;
+      // Tramo 1: de -6 a 0 (corte con el eje y); pausa; tramo 2: de 0 a la raíz (corte con el eje x)
+      stop.ejes = Plot.animate(hasRoot ? 6200 : 3400, t => {
+        const T1 = hasRoot ? 0.38 : 0.7, P1 = hasRoot ? 0.5 : 1;
+        if (t < T1) draw({ x: start + (firstStop - start) * Plot.ease(t / T1), found: [], msg: 'Buscando dónde x = 0…' });
+        else if (t < P1 || !hasRoot) draw({ x: firstStop, found: ['y'], msg: `¡x = 0! Corta el eje y en (0, ${f(n)})` });
+        else {
+          const k = Math.min(1, (t - P1) / (0.88 - P1));
+          const x = firstStop + (secondStop - firstStop) * Plot.ease(k);
+          draw({ x, found: ['y', ...(k >= 1 ? ['x'] : [])], msg: k >= 1 ? `¡y = 0! Corta el eje x en (${f(r)}, 0)` : 'Buscando dónde y = 0…' });
+        }
+      }, () => draw());
+    });
+    root.querySelector('#ln-ejes-random').addEventListener('click', () => {
+      // Rectas con un corte en x "lindo" (entero) para que se pueda comprobar a mano
+      const m = (Math.round(Math.random() * 8) + 1) / 2 * (Math.random() < 0.5 ? -1 : 1);
+      const rootX = Math.round(Math.random() * 8) - 4;
+      const n = Math.max(-6, Math.min(6, Math.round(-m * rootX * 2) / 2));
+      mIn.value = String(m);
+      nIn.value = String(n);
+      onInput();
+    });
+    setupEjes.update = update;
+    setupEjes.inputs = { mIn, nIn };
+    update();
+  }
+
   function setupLab(root) {
     const p = new Plot(root.querySelector('#ln-plot-lab'), { xMin: -6, xMax: 6, yMin: -8, yMax: 8, aspect: 1, step: 1 });
-    const pe = new Plot(root.querySelector('#ln-plot-ejes'), { xMin: -6, xMax: 6, yMin: -8, yMax: 8, aspect: 1, step: 1 });
-    plots.lab = p; plots.ejes = pe;
+    plots.lab = p;
     const mIn = root.querySelector('#ln-m'), nIn = root.querySelector('#ln-n');
     const showCuts = () => root.querySelector('#ln-lab-cuts').checked;
 
@@ -566,29 +667,6 @@
       });
     };
 
-    const drawEjes = () => {
-      const { m, n } = state;
-      const v = labView();
-      pe.setView({ yMin: Math.max(-14, v.yMin), yMax: Math.min(14, v.yMax), step: (v.yMax - v.yMin) > 18 ? 2 : 1 });
-      pe.draw(() => {
-        pe.grid(); pe.axes();
-        pe.fn(x => m * x + n, C.line, { width: 3 });
-        pe.point(0, n, C.n, `corta eje y: (0, ${f(n)})`);
-        if (v.root !== null && abs(v.root) <= 6) pe.point(v.root, 0, C.y, `corta eje x: (${f(v.root)}, 0)`, { dy: 20 });
-      });
-      const stepsEl = root.querySelector('#ln-root-steps');
-      if (m === 0) {
-        stepsEl.innerHTML = n === 0 ? '<p>Con m = 0 y n = 0 la recta es el propio eje x (y = 0): lo toca en todas partes.</p>'
-          : `<p>Como m = 0, y = ${f(n)} siempre. La recta es horizontal y <b>nunca</b> corta el eje x.</p>`;
-        return;
-      }
-      stepsEl.innerHTML = `
-        <p>1) Pon y = 0: &nbsp; 0 = ${f(m)}x ${sgn(n)} ${f(abs(n))}</p>
-        <p>2) Pasa ${n === 0 ? 'nada' : `el ${f(abs(n))} al otro lado (${n > 0 ? 'restando' : 'sumando'})`}: &nbsp; ${f(-n)} = ${f(m)}x</p>
-        <p>3) Divide por ${f(m)}: &nbsp; x = ${f(-n)} ÷ ${m < 0 ? `(${f(m)})` : f(m)} = <b class="t-y">${f(-n / m)}</b></p>
-        <p class="result">La recta corta el eje x en (<b>${f(-n / m)}</b>, 0).</p>`;
-    };
-
     const update = () => {
       state.m = Number(mIn.value);
       state.n = Number(nIn.value);
@@ -612,7 +690,6 @@
       const steep = abs(m) >= 3 ? ' Es bastante <b>empinada</b>.' : abs(m) > 0 && abs(m) <= 0.5 ? ' Es bastante <b>suave</b> (casi plana).' : '';
       root.querySelector('#ln-lab-explain').innerHTML = `<p>${slope}${steep}</p><p>Corta el eje y en <b>(0, ${f(n)})</b>${v.root !== null ? ` y el eje x en <b>(${f(v.root)}, 0)</b>` : ''}.</p><p>${kind}</p>`;
       drawLab();
-      drawEjes();
     };
 
     const onInput = () => { cancel('lab'); update(); MathLessons.changed(); };
@@ -752,6 +829,7 @@
       setupLinealAfin(container);
       setupParts(container);
       setupSlope(container);
+      setupEjes(container);
       setupLab(container);
       setupDirecta(container);
       setupInversa(container);
@@ -772,7 +850,7 @@
     goTo(chapter) { if (nav) nav.goTo(chapter); },
     getState() {
       if (!rootEl) return pending;
-      return { m: state.m, n: state.n, k: state.k, kx: state.kx, A: state.A, B: state.B, quiz: quiz ? quiz.getState() : null, nav: nav ? nav.getState() : null };
+      return { m: state.m, n: state.n, em: state.em, en: state.en, k: state.k, kx: state.kx, A: state.A, B: state.B, quiz: quiz ? quiz.getState() : null, nav: nav ? nav.getState() : null };
     },
     setState(s) {
       if (!s) return;
@@ -780,12 +858,15 @@
       if (!rootEl) { pending = s; return; }
       Object.assign(state, {
         A: s.A || state.A, B: s.B || state.B,
-        m: s.m ?? state.m, n: s.n ?? state.n, k: s.k ?? state.k, kx: s.kx ?? state.kx
+        m: s.m ?? state.m, n: s.n ?? state.n, em: s.em ?? state.em, en: s.en ?? state.en, k: s.k ?? state.k, kx: s.kx ?? state.kx
       });
       setupLab.inputs.mIn.value = state.m;
       setupLab.inputs.nIn.value = state.n;
       setupInversa.inputs.kIn.value = state.k;
       setupInversa.inputs.xIn.value = state.kx;
+      setupEjes.inputs.mIn.value = state.em;
+      setupEjes.inputs.nIn.value = state.en;
+      setupEjes.update();
       setupLab.update();
       setupInversa.update();
       if (quiz && s.quiz) quiz.setState(s.quiz);
