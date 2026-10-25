@@ -931,6 +931,9 @@
     // ─── Render Loop ───────────────────────────
     function renderLoop() {
         animationId = requestAnimationFrame(renderLoop);
+        // En el inicio o en una lección el 3D está oculto: no se dibuja (ahorra batería y no traba
+        // el celular, sobre todo dentro de una ventana de ZenBan)
+        if (document.body.classList.contains('lesson-mode') || document.hidden) return;
 
         // Animate particles
         const particles = scene.getObjectByName('particles');

@@ -6,7 +6,8 @@
 // 1.5 el progreso dentro de ZenBan no se pierde (espera el estado guardado y guarda al cerrar)
 // 1.6 tocar la gráfica marca el punto con líneas a los ejes, cortes con los ejes con sus propios controles, menú con scroll
 // 1.7 lección del teorema de Pitágoras, tabla que se pinta con el punto tocado, ejemplo en "Cada parte"
-window.MATHVIZ_VERSION = '1.7';
+// 1.8 el gráfico 3D no se dibuja en el inicio ni en una lección (más fluido en el celular)
+window.MATHVIZ_VERSION = '1.8';
 (function () {
   const header = document.getElementById('app-header');
   if (!header) return;
