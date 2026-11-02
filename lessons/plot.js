@@ -4,10 +4,33 @@
 //   p.draw(ctx => { p.grid(); p.axes(); p.fn(x => 2 * x + 1, '#6C63FF'); p.point(1, 3, '#FFA751', 'P'); });
 // La gráfica se adapta al ancho de su contenedor y a pantallas de alta densidad.
 (function () {
+  // Las lecciones dibujan pensando en fondo oscuro (blanco, amarillo claro...). En el tema claro cada color se
+  // cambia al vuelo por su equivalente oscuro al asignarlo al contexto, así las lecciones no necesitan saber del tema.
+  const LIGHT = { '#fff': '#1c1b33', '#ffffff': '#1c1b33', '#ffd166': '#b45309', '#7dffb3': '#15803d', '#ff8a8a': '#c62828', '#0f0f1a': '#ffffff' };
+  const RGBA = [[/^rgba\(\s*255\s*,\s*255\s*,\s*255\s*,/, 'rgba(28,27,51,'], [/^rgba\(\s*255\s*,\s*209\s*,\s*102\s*,/, 'rgba(180,83,9,'],
+    [/^rgba\(\s*160\s*,\s*155\s*,\s*255\s*,/, 'rgba(80,70,216,'], [/^rgba\(\s*15\s*,\s*15\s*,\s*26\s*,\s*0?\.75\)/, 'rgba(255,255,255,0.85)']];
+  const esClaro = () => !!(window.MathVizTema && MathVizTema.isLight());
+  function tc(v) {
+    if (typeof v !== 'string' || !esClaro()) return v;
+    const k = v.trim().toLowerCase();
+    if (LIGHT[k]) return LIGHT[k];
+    for (const [re, to] of RGBA) if (re.test(k)) return k.replace(re, to);
+    return v;
+  }
+  function temaCtx(ctx) {
+    ['fillStyle', 'strokeStyle'].forEach(prop => {
+      const d = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, prop);
+      Object.defineProperty(ctx, prop, { configurable: true, get() { return d.get.call(ctx); }, set(v) { d.set.call(ctx, tc(v)); } });
+    });
+    return ctx;
+  }
+  const instancias = new Set();
+
   class Plot {
     constructor(canvas, opts = {}) {
       this.canvas = canvas;
-      this.ctx = canvas.getContext('2d');
+      this.ctx = temaCtx(canvas.getContext('2d'));
+      instancias.add(this);
       this.opts = Object.assign({ xMin: -6, xMax: 6, yMin: -6, yMax: 6, aspect: 1, step: 1, labels: true }, opts);
       this.painter = null;
       // Punto marcado al tocar la gráfica: líneas segmentadas hasta los ejes x e y, con sus coordenadas
@@ -362,4 +385,5 @@
   };
 
   window.Plot = Plot;
+  if (window.MathVizTema) MathVizTema.onChange(() => instancias.forEach(p => { if (p.canvas.isConnected) p.redraw(); else instancias.delete(p); }));
 })();

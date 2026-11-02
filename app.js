@@ -15,10 +15,18 @@
         grid: 0x1a1a2e,
         axes: 0x3a3a55,
         areaFill: 0x00D4AA,
-        background: 0x0a0a0f,
+        background: 0x0a0a0f, // se cambia según el tema (TEMA3D)
         labelX: 0x6C63FF,
         labelY: 0xFF6B9D,
     };
+
+    // Colores de la escena 3D que cambian con el tema claro / oscuro
+    const TEMA3D = {
+        dark: { background: 0x0a0a0f, grid: 0x1a1a2e, axis: 0x555588, tick: 0x444466, num: 0x666688, particles: 0x4444aa },
+        light: { background: 0xf3f4fb, grid: 0xb4bad3, axis: 0x5b6285, tick: 0x7a82a3, num: 0x4a5173, particles: 0x9aa3d6 },
+    };
+    const esClaro = () => !!(window.MathVizTema && MathVizTema.isLight());
+    let tema3D = esClaro() ? TEMA3D.light : TEMA3D.dark;
 
     const LINE_WIDTH_BASE = 3;
     const TANGENT_LENGTH = 4;
@@ -57,10 +65,10 @@
         const canvas = document.getElementById('three-canvas');
 
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(COLORS.background);
+        scene.background = new THREE.Color(tema3D.background);
 
         // Add subtle fog for depth
-        scene.fog = new THREE.FogExp2(COLORS.background, 0.008);
+        scene.fog = new THREE.FogExp2(tema3D.background, 0.008);
 
         // Camera — orthographic-like perspective for 2D graph feel
         const aspect = window.innerWidth / window.innerHeight;
@@ -96,6 +104,25 @@
         window.addEventListener('resize', onResize);
     }
 
+    // Cambia los colores de la escena (fondo, niebla, partículas, cuadrícula y ejes) sin tocar las curvas
+    function aplicarTema3D() {
+        tema3D = esClaro() ? TEMA3D.light : TEMA3D.dark;
+        if (!scene) return;
+        scene.background = new THREE.Color(tema3D.background);
+        scene.fog.color.setHex(tema3D.background);
+        const pa = scene.getObjectByName('particles');
+        if (pa) pa.material.color.setHex(tema3D.particles);
+        [gridGroup, axesGroup].forEach(g => {
+            if (!g) return;
+            scene.remove(g);
+            g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); } });
+        });
+        createAxes();
+        createGrid();
+        axesGroup.visible = state.showAxes;
+    }
+    if (window.MathVizTema) MathVizTema.onChange(aplicarTema3D);
+
     function onResize() {
         const w = window.innerWidth;
         const h = window.innerHeight;
@@ -120,7 +147,7 @@
 
         const material = new THREE.PointsMaterial({
             size: 0.06,
-            color: 0x4444aa,
+            color: tema3D.particles,
             transparent: true,
             opacity: 0.5,
             sizeAttenuation: true,
@@ -139,7 +166,7 @@
 
         const gridSize = 20;
         const gridMaterial = new THREE.LineBasicMaterial({
-            color: COLORS.grid,
+            color: tema3D.grid,
             transparent: true,
             opacity: 0.4,
         });
@@ -169,7 +196,7 @@
         axesGroup.name = 'axes';
 
         // X axis
-        const xMat = new THREE.LineBasicMaterial({ color: 0x555588, linewidth: 1 });
+        const xMat = new THREE.LineBasicMaterial({ color: tema3D.axis, linewidth: 1 });
         const xGeo = new THREE.BufferGeometry().setFromPoints([
             new THREE.Vector3(-30, 0, 0),
             new THREE.Vector3(30, 0, 0),
@@ -177,7 +204,7 @@
         axesGroup.add(new THREE.Line(xGeo, xMat));
 
         // Y axis
-        const yMat = new THREE.LineBasicMaterial({ color: 0x555588, linewidth: 1 });
+        const yMat = new THREE.LineBasicMaterial({ color: tema3D.axis, linewidth: 1 });
         const yGeo = new THREE.BufferGeometry().setFromPoints([
             new THREE.Vector3(0, -30, 0),
             new THREE.Vector3(0, 30, 0),
@@ -188,8 +215,8 @@
         createTickMarks();
 
         // Arrow heads
-        createArrowHead(axesGroup, new THREE.Vector3(30, 0, 0), new THREE.Vector3(1, 0, 0), 0x555588);
-        createArrowHead(axesGroup, new THREE.Vector3(0, 30, 0), new THREE.Vector3(0, 1, 0), 0x555588);
+        createArrowHead(axesGroup, new THREE.Vector3(30, 0, 0), new THREE.Vector3(1, 0, 0), tema3D.axis);
+        createArrowHead(axesGroup, new THREE.Vector3(0, 30, 0), new THREE.Vector3(0, 1, 0), tema3D.axis);
 
         scene.add(axesGroup);
     }
@@ -211,7 +238,7 @@
 
     function createTickMarks() {
         const tickMat = new THREE.LineBasicMaterial({
-            color: 0x444466,
+            color: tema3D.tick,
             transparent: true,
             opacity: 0.6,
         });
@@ -237,9 +264,9 @@
 
             // Number labels for major ticks
             if (i % 2 === 0 && Math.abs(i) <= 10) {
-                createTextSprite(i.toString(), new THREE.Vector3(i, -0.6, 0), 0.4, 0x666688);
+                createTextSprite(i.toString(), new THREE.Vector3(i, -0.6, 0), 0.4, tema3D.num);
                 if (i !== 0) {
-                    createTextSprite(i.toString(), new THREE.Vector3(-0.6, i, 0), 0.4, 0x666688);
+                    createTextSprite(i.toString(), new THREE.Vector3(-0.6, i, 0), 0.4, tema3D.num);
                 }
             }
         }

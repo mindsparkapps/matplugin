@@ -13,7 +13,7 @@
       if (el) inputs[id] = el.type === 'checkbox' ? el.checked : el.value;
     });
     // Pestaña abierta y lo que se movió en cada lección
-    return { inputs, lessons: window.MathLessons ? MathLessons.getState() : null };
+    return { inputs, lessons: window.MathLessons ? MathLessons.getState() : null, ajustes: window.MathVizTema ? MathVizTema.get() : null };
   }
 
   const titleFor = (inputs) => `MathViz 3D · f(x) = ${(inputs && inputs['function-input']) || ''}`;
@@ -23,8 +23,10 @@
   let gotInit = false;
   setTimeout(() => { gotInit = true; }, 5000);
 
-  ZenBanPlugin.onInit(({ state }) => {
+  ZenBanPlugin.onInit(({ state, theme }) => {
     gotInit = true;
+    // Tema de ZenBan y estilo elegido (propio o de ZenBan); sin estilo guardado se usa el de ZenBan
+    if (window.MathVizTema) { MathVizTema.setHost(theme); MathVizTema.load(state && state.ajustes); }
     if (!state || !state.inputs) return;
     restoring = true;
     ids.forEach(id => {
@@ -62,6 +64,8 @@
   window.addEventListener('pagehide', flush);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
   if (window.MathLessons) MathLessons.onChange(save);
+  // Cambiar el estilo o el tema (lo hace el usuario) también se guarda en el objeto
+  if (window.MathVizTema) MathVizTema.onChange((claro, aj, usuario) => { if (usuario) save(); });
   document.addEventListener('input', save, true);
   document.addEventListener('change', save, true);
   document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('.preset-btn')) save(); }, true);
