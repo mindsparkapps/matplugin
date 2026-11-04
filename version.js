@@ -8,7 +8,8 @@
 // 1.7 lección del teorema de Pitágoras, tabla que se pinta con el punto tocado, ejemplo en "Cada parte"
 // 1.8 el gráfico 3D no se dibuja en el inicio ni en una lección (más fluido en el celular)
 // 1.9 tema claro (auto / claro / oscuro) y estilo propio o de ZenBan, como TablaQuiz y MemoSpark
-window.MATHVIZ_VERSION = '1.9';
+// 2.0 tarjetas con gráficos, desafíos que rotan en otro orden con más problemas, link a la lección desde los fallos y lección de proporción inversa y función racional
+window.MATHVIZ_VERSION = '2.0';
 (function () {
   const header = document.getElementById('app-header');
   if (!header) return;

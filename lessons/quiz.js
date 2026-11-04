@@ -40,9 +40,13 @@
   }
   const gradeTxt = (g) => g.toFixed(1).replace('.', ',');
 
-  function generate(templates, seed) {
+  // Los intentos viejos no guardaban qué preguntas tocaron: eran las primeras 10 plantillas, en orden
+  const legacyIdx = (templates) => templates.slice(0, 10).map((_, i) => i);
+
+  function generate(templates, seed, idx) {
     const r = randomTools(seed);
-    return templates.map((t) => {
+    const list = (idx || legacyIdx(templates)).map(i => templates[i]).filter(Boolean);
+    return list.map((t) => {
       let item = null;
       for (let tries = 0; tries < 8 && !item; tries++) {
         const made = t.make(r);
@@ -53,18 +57,54 @@
       // Mezcla las opciones (la correcta queda en un lugar al azar)
       const opts = item.opts.slice();
       for (let i = opts.length - 1; i > 0; i--) { const j = Math.floor(r.rnd() * (i + 1)); [opts[i], opts[j]] = [opts[j], opts[i]]; }
-      return { topic: t.topic, q: item.q, a: opts, ok: opts.indexOf(String(item.correct)), why: item.why };
+      return { topic: t.topic, chapter: t.chapter, q: item.q, graph: item.graph || null, a: opts, ok: opts.indexOf(String(item.correct)), why: item.why };
+    });
+  }
+
+  // Elige qué preguntas tocan en un intento nuevo: van rotando (primero las que hace más tiempo no salen o
+  // las que más fallaste), siempre hay algunas con gráfico, y se mezclan en un orden distinto cada vez.
+  function choose(templates, attempts, n, minVisual = 3) {
+    const info = templates.map(() => ({ seen: 0, fail: 0, last: -1 }));
+    attempts.forEach((a, ai) => (a.idx || legacyIdx(templates)).forEach((t, pos) => {
+      const s = info[t];
+      if (!s) return;
+      s.seen++; s.last = ai;
+      if ((a.failed || []).includes(pos)) s.fail++;
+    }));
+    const scored = templates.map((t, i) => {
+      const s = info[i];
+      return { i, visual: !!t.visual, sc: (s.seen ? Math.min(attempts.length - s.last, 6) : 8) + (s.seen ? 4 * s.fail / s.seen : 0) + Math.random() * 3 };
+    }).sort((a, b) => b.sc - a.sc);
+    n = Math.min(n, templates.length);
+    const picked = scored.filter(x => x.visual).slice(0, Math.min(minVisual, n));
+    scored.forEach(x => { if (picked.length < n && !picked.includes(x)) picked.push(x); });
+    const ids = picked.map(x => x.i);
+    for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ids[i], ids[j]] = [ids[j], ids[i]]; }
+    return ids;
+  }
+
+  // Dibuja el gráfico de cada pregunta que lo trae (q.graph = { view, draw(p) })
+  function drawGraphs(box, qs) {
+    box.querySelectorAll('.quiz-q').forEach((el) => {
+      const q = qs[Number(el.dataset.q)];
+      const cv = el.querySelector('canvas.lq-g');
+      if (!q || !q.graph || !cv) return;
+      const p = new Plot(cv, Object.assign({ aspect: 0.7, step: 1 }, q.graph.view));
+      p.draw(() => q.graph.draw(p));
     });
   }
 
   const newSeed = () => Math.floor(Math.random() * 2 ** 31);
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-  window.LessonQuiz = function (root, { id, templates, onChange = () => {} }) {
+  window.LessonQuiz = function (root, { id, templates, perAttempt = 10, onChange = () => {} }) {
     const storeKey = `mathviz_quiz_${id}`;
-    let state = { attempts: [], current: { seed: newSeed(), answers: {} } };
+    let state = { attempts: [], current: { seed: newSeed(), idx: null, answers: {} } };
+    const newCurrent = () => ({ seed: newSeed(), idx: choose(templates, state.attempts, perAttempt), answers: {} });
+    const gen = (o) => generate(templates, o.seed, o.idx);
     let viewing = null; // índice del intento que se está revisando
     try { const saved = JSON.parse(localStorage.getItem(storeKey) || 'null'); if (saved && saved.current) state = saved; } catch (e) {}
+    if (!state.current.idx && !Object.keys(state.current.answers).length) state.current = newCurrent();
 
     root.innerHTML = `
       <div class="lq-bar"><span class="lq-title"></span><button type="button" class="lbtn" data-lq="new">🎲 Nuevo intento (otros números)</button></div>
@@ -91,13 +131,14 @@
 
     // Guarda el intento cuando se respondió todo (o, con force, aunque falten: las que faltan cuentan como malas)
     function saveAttemptIfDone(force = false) {
-      const qs = generate(templates, state.current.seed);
+      const qs = gen(state.current);
       const answered = Object.keys(state.current.answers).length;
       if (state.current.saved || !answered || (answered < qs.length && !force)) return;
       const good = qs.filter((q, i) => state.current.answers[i] === q.ok).length;
       state.attempts.push({
         n: (state.attempts.at(-1)?.n || 0) + 1,
         seed: state.current.seed,
+        idx: state.current.idx || undefined,
         at: Date.now(),
         answers: { ...state.current.answers },
         good,
@@ -116,8 +157,9 @@
         const done = ans !== undefined;
         return `<div class="quiz-q${done ? (ans === q.ok ? ' is-ok' : ' is-bad') : ''}" data-q="${i}">
           <p><b>${i + 1}.</b> <span class="lq-topic">${esc(q.topic)}</span> ${q.q}</p>
+          ${q.graph ? '<div class="plot-wrap lq-gwrap"><canvas class="lq-g"></canvas></div>' : ''}
           <div class="quiz-a">${q.a.map((a, j) => `<button type="button" data-a="${j}" ${done || locked ? 'disabled' : ''} class="${done && j === q.ok ? 'is-right' : ''}${ans === j && j !== q.ok ? ' is-wrong' : ''}">${a}</button>`).join('')}</div>
-          ${done ? `<p class="why">${ans === q.ok ? '✅ ¡Correcto!' : `❌ Elegiste ${q.a[ans]}; la respuesta es <b>${q.a[q.ok]}</b>.`} ${q.why}</p>` : ''}
+          ${done ? `<p class="why">${ans === q.ok ? '✅ ¡Correcto!' : `❌ Elegiste ${q.a[ans]}; la respuesta es <b>${q.a[q.ok]}</b>.`} ${q.why}${ans !== q.ok && q.chapter ? ` <a class="lq-link" href="#${q.chapter}">📖 Repasar en la lección</a>` : ''}</p>` : ''}
         </div>`;
       }).join('');
     }
@@ -132,16 +174,19 @@
       if (reviewing) {
         const at = state.attempts[viewing];
         title.innerHTML = `Revisando el <b>intento ${at.n}</b> (${new Date(at.at).toLocaleString()}) · nota <b class="${at.nota >= 4 ? 'good' : 'bad'}">${gradeTxt(at.nota)}</b> <button type="button" class="lbtn ghost" data-lq="back">Volver al intento actual</button>`;
-        qBox.innerHTML = questionsHtml(generate(templates, at.seed), at.answers, true);
+        const rq = gen(at);
+        qBox.innerHTML = questionsHtml(rq, at.answers, true);
+        drawGraphs(qBox, rq);
         result.innerHTML = '';
       } else {
-        const qs = generate(templates, state.current.seed);
+        const qs = gen(state.current);
         const answered = Object.keys(state.current.answers).length;
         const lastTxt = last ? ` · intentos guardados: <b>${state.attempts.length}</b> (última nota <b class="${last.nota >= 4 ? 'good' : 'bad'}">${gradeTxt(last.nota)}</b>)` : '';
-        title.innerHTML = `<b>Intento ${attemptNo}</b> · ${answered} de ${qs.length} respondidas · cada intento trae números nuevos${lastTxt}`;
+        title.innerHTML = `<b>Intento ${attemptNo}</b> · ${answered} de ${qs.length} respondidas · cada intento trae otras preguntas y números nuevos${lastTxt}`;
         qBox.innerHTML = questionsHtml(qs, state.current.answers, false);
+        drawGraphs(qBox, qs);
         if (state.current.saved && last) {
-          const failed = last.failed.map(i => `<li><a href="#" data-goto="${i}">Pregunta ${i + 1}</a> · ${esc(qs[i].topic)}</li>`).join('');
+          const failed = last.failed.map(i => `<li><a href="#" data-goto="${i}">Pregunta ${i + 1}</a> · ${esc(qs[i].topic)}${qs[i].chapter ? ` · <a class="lq-link" href="#${qs[i].chapter}">📖 ir a la lección</a>` : ''}</li>`).join('');
           const msg = last.nota >= 6.5 ? '🏆 ¡Excelente!' : last.nota >= 5.5 ? '🌟 ¡Muy bien!' : last.nota >= 4 ? '👍 Aprobado, ¡sigue practicando!' : '💪 Revisa las explicaciones y vuelve a intentarlo.';
           const prev = state.attempts.at(-2);
           const diff = prev ? Math.round((last.nota - prev.nota) * 10) / 10 : null;
@@ -184,9 +229,9 @@
       // Temas con más errores (todos los intentos)
       const stats = {};
       at.forEach(a => {
-        const qs = generate(templates, a.seed);
+        const qs = gen(a);
         qs.forEach((q, i) => {
-          stats[q.topic] = stats[q.topic] || { fail: 0, total: 0 };
+          stats[q.topic] = stats[q.topic] || { fail: 0, total: 0, chapter: q.chapter };
           stats[q.topic].total++;
           if (a.answers[i] !== q.ok) stats[q.topic].fail++;
         });
@@ -194,7 +239,7 @@
       const rows = Object.entries(stats).sort((x, y) => y[1].fail / y[1].total - x[1].fail / x[1].total);
       root.querySelector('.lq-topics').innerHTML = rows.map(([topic, s]) => {
         const pct = Math.round(s.fail / s.total * 100);
-        return `<div class="lq-topic-row"><span>${esc(topic)}</span><span class="lq-bar-track"><i style="width:${pct}%" class="${pct >= 50 ? 'is-bad' : pct > 0 ? 'is-mid' : 'is-ok'}"></i></span><span>${s.fail} de ${s.total} mal</span></div>`;
+        return `<div class="lq-topic-row"><span>${esc(topic)}</span><span class="lq-bar-track"><i style="width:${pct}%" class="${pct >= 50 ? 'is-bad' : pct > 0 ? 'is-mid' : 'is-ok'}"></i></span><span>${s.fail} de ${s.total} mal${s.fail && s.chapter ? ` · <a class="lq-link" href="#${s.chapter}">📖 Ir a la lección</a>` : ''}</span></div>`;
       }).join('');
       root.querySelector('.lq-history').innerHTML = `<thead><tr><th>#</th><th>Fecha</th><th>Correctas</th><th>Nota</th><th>Falló en</th><th></th></tr></thead><tbody>${at.map((a, i) => `<tr>
         <td>${a.n}</td><td>${new Date(a.at).toLocaleDateString()} ${new Date(a.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
@@ -219,7 +264,7 @@
         if (cmd.dataset.lq === 'new') {
           // Si el intento actual quedó a medias, se guarda igual (con lo respondido) para no perderlo
           saveAttemptIfDone(true);
-          state.current = { seed: newSeed(), answers: {} };
+          state.current = newCurrent();
           viewing = null;
           render();
           persist();
@@ -250,12 +295,111 @@
       setState(s) {
         if (!s || !s.current) return;
         state = JSON.parse(JSON.stringify(s));
+        if (!state.current.idx && !Object.keys(state.current.answers).length) state.current = newCurrent();
         viewing = null;
         try { localStorage.setItem(storeKey, JSON.stringify(state)); } catch (e) {}
         render();
       },
       render,
       grade
+    };
+  };
+
+  // ===== Tarjetas con gráficos (como MemoSpark): una tarjeta a la vez, con el gráfico y una pregunta para
+  // interpretarlo. Las que fallas vuelven a salir más seguido; un tema se "domina" con 3 aciertos seguidos.
+  //   const cards = LessonCards(container, { id: 'lineal', templates, onChange });  (plantillas con graph)
+  window.LessonCards = function (root, { id, templates, onChange = () => {} }) {
+    const storeKey = `mathviz_cards_${id}`;
+    let state = { stats: {}, total: 0, good: 0, streak: 0, best: 0 };
+    try { const saved = JSON.parse(localStorage.getItem(storeKey) || 'null'); if (saved && saved.stats) state = saved; } catch (e) {}
+    let card = null; // { i, q, answer }
+    let lastI = -1;
+
+    root.innerHTML = `
+      <div class="lq-bar"><span class="lc-info"></span><button type="button" class="lbtn ghost" data-lc="reset">Borrar mi avance</button></div>
+      <div class="lc-card"></div>
+      <h3>🎯 Cómo vas en cada tipo de tarjeta</h3>
+      <div class="lc-topics"></div>`;
+
+    const persist = () => {
+      try { localStorage.setItem(storeKey, JSON.stringify(state)); } catch (e) {}
+      onChange();
+    };
+
+    // Elige la siguiente: pesa más lo que fallas o aún no ves; evita repetir la anterior
+    function next() {
+      const w = templates.map((t, i) => {
+        const s = state.stats[t.topic];
+        if (i === lastI && templates.length > 1) return 0;
+        if (!s) return 4;
+        const rate = s.fail / Math.max(1, s.ok + s.fail);
+        return 1 + 5 * rate + (s.run >= 3 ? 0 : 1.5);
+      });
+      let r = Math.random() * w.reduce((a, b) => a + b, 0), i = 0;
+      for (; i < w.length - 1; i++) { r -= w[i]; if (r <= 0) break; }
+      lastI = i;
+      card = { i, q: generate(templates, newSeed(), [i])[0], answer: undefined };
+      render();
+    }
+
+    function render() {
+      const mastered = templates.filter(t => (state.stats[t.topic] || {}).run >= 3).length;
+      root.querySelector('.lc-info').innerHTML = `🃏 Tarjetas vistas: <b>${state.total}</b> · aciertos <b class="good">${state.good}</b> · racha <b>${state.streak}</b> (récord ${state.best}) · dominados <b>${mastered} de ${templates.length}</b>`;
+      const box = root.querySelector('.lc-card');
+      if (!card) { box.innerHTML = '<p>Cargando tarjeta…</p>'; return; }
+      const q = card.q, done = card.answer !== undefined;
+      box.innerHTML = `
+        <div class="quiz-q${done ? (card.answer === q.ok ? ' is-ok' : ' is-bad') : ''}">
+          <p><span class="lq-topic">${esc(q.topic)}</span> ${q.q}</p>
+          ${q.graph ? '<div class="plot-wrap lq-gwrap"><canvas class="lq-g"></canvas></div>' : ''}
+          <div class="quiz-a">${q.a.map((a, j) => `<button type="button" data-ca="${j}" ${done ? 'disabled' : ''} class="${done && j === q.ok ? 'is-right' : ''}${done && card.answer === j && j !== q.ok ? ' is-wrong' : ''}">${a}</button>`).join('')}</div>
+          ${done ? `<p class="why">${card.answer === q.ok ? '✅ ¡Correcto!' : `❌ La respuesta es <b>${q.a[q.ok]}</b>.`} ${q.why}${card.answer !== q.ok && q.chapter ? ` <a class="lq-link" href="#${q.chapter}">📖 Repasar en la lección</a>` : ''}</p>
+          <div class="btn-row"><button type="button" class="lbtn" data-lc="next">Siguiente tarjeta →</button></div>` : '<p class="small">Mira el gráfico y elige la respuesta.</p>'}
+        </div>`;
+      if (q.graph) {
+        const p = new Plot(box.querySelector('canvas.lq-g'), Object.assign({ aspect: 0.7, step: 1 }, q.graph.view));
+        p.draw(() => q.graph.draw(p));
+      }
+      root.querySelector('.lc-topics').innerHTML = templates.map((t) => {
+        const s = state.stats[t.topic];
+        const tot = s ? s.ok + s.fail : 0;
+        const pct = tot ? Math.round(s.ok / tot * 100) : 0;
+        return `<div class="lq-topic-row"><span>${s && s.run >= 3 ? '⭐ ' : ''}${esc(t.topic)}</span><span class="lq-bar-track"><i style="width:${Math.max(pct, tot ? 4 : 0)}%" class="${pct >= 70 ? 'is-good' : pct >= 40 ? 'is-mid' : 'is-bad'}"></i></span><span>${tot ? `${s.ok} de ${tot} bien` : 'sin ver'}${s && s.fail && t.chapter ? ` · <a class="lq-link" href="#${t.chapter}">📖 lección</a>` : ''}</span></div>`;
+      }).join('');
+    }
+
+    root.addEventListener('click', (e) => {
+      const a = e.target.closest('[data-ca]');
+      if (a && card && card.answer === undefined) {
+        card.answer = Number(a.dataset.ca);
+        const ok = card.answer === card.q.ok, t = card.q.topic;
+        const s = state.stats[t] = state.stats[t] || { ok: 0, fail: 0, run: 0 };
+        state.total++;
+        if (ok) { state.good++; state.streak++; s.ok++; s.run++; state.best = Math.max(state.best, state.streak); }
+        else { state.streak = 0; s.fail++; s.run = 0; }
+        render();
+        persist();
+        return;
+      }
+      const cmd = e.target.closest('[data-lc]');
+      if (!cmd) return;
+      if (cmd.dataset.lc === 'next') { next(); root.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      if (cmd.dataset.lc === 'reset' && confirm('¿Borrar el avance de las tarjetas?')) {
+        state = { stats: {}, total: 0, good: 0, streak: 0, best: 0 };
+        persist();
+        next();
+      }
+    });
+
+    next();
+    return {
+      getState: () => JSON.parse(JSON.stringify(state)),
+      setState(s) {
+        if (!s || !s.stats) return;
+        state = JSON.parse(JSON.stringify(s));
+        try { localStorage.setItem(storeKey, JSON.stringify(state)); } catch (e) {}
+        render();
+      }
     };
   };
 })();

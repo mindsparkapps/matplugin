@@ -340,3 +340,20 @@ body.lesson-mode #app-header { left: 0; padding: 0 14px; }
     .card { padding: 16px 14px; }
     .lesson-page { font-size: 15px; }
 }
+.lq-bar-track i.is-good { background: var(--c-good); }
+.lq-gwrap { max-width: 440px; margin: 8px 0; }
+.lq-link { font-size: 13px; font-weight: 600; white-space: nowrap; }
+.lc-card { margin: 12px 0; }
+.lc-info { font-size: 15px; }
+/* Lección de proporción inversa */
+.iv-minis { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin: 10px 0; }
+.iv-minis h4 { margin: 0 0 6px; font-size: 14px; }
+.iv-friends { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.iv-friend { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: var(--radius-md); border: 1px solid var(--border-glow); background: rgba(108,99,255,0.08); font-size: 18px; }
+.iv-cookies { font-size: 16px; letter-spacing: 1px; word-break: break-all; max-width: 190px; }
+.iv-prob { padding: 10px 14px; margin: 10px 0; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); }
+.iv-prob h4 { margin: 0 0 4px; }
+.iv-prob p { margin: 4px 0; }
+.btn-row .lbtn.is-on { border-color: var(--accent-primary); background: rgba(108,99,255,0.25); }
+.iv-minis > div { min-width: 0; }
+.iv-minis canvas { max-width: 100%; }

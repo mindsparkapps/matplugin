@@ -16,7 +16,7 @@
   };
   const isInt = (v) => Math.abs(v - Math.round(v)) < 1e-9;
 
-  const INTRO = 'Descubre el teorema más famoso de la geometría: en un triángulo rectángulo, el cuadrado de la hipotenusa es igual a la suma de los cuadrados de los catetos. Lo verás con áreas, con una demostración animada, con triángulos que mueves y con problemas de la vida real. Y al final, cómo se une con la <b>función lineal</b>: la pendiente es un triángulo rectángulo. Son 16 capítulos cortos y desafíos con nota.';
+  const INTRO = 'Descubre el teorema más famoso de la geometría: en un triángulo rectángulo, el cuadrado de la hipotenusa es igual a la suma de los cuadrados de los catetos. Lo verás con áreas, con una demostración animada, con triángulos que mueves y con problemas de la vida real. Y al final, cómo se une con la <b>función lineal</b>: la pendiente es un triángulo rectángulo. Son 17 capítulos cortos y desafíos con nota.';
   const GROUPS = [
     { name: '🚀 Empezar', chapters: [
       { id: 'py-triangulo', title: 'El triángulo rectángulo', desc: 'Catetos, hipotenusa y ángulo recto: cómo reconocerlos.' }
@@ -47,6 +47,7 @@
       { id: 'py-errores', title: 'Errores comunes', desc: 'Las trampas más típicas y cómo evitarlas.' }
     ] },
     { name: '🏆 Evaluación', chapters: [
+      { id: 'py-tarjetas', title: 'Tarjetas con gráficos', desc: 'Mira el triángulo o los puntos y calcula: hipotenusa, cateto, distancia…' },
       { id: 'py-desafios', title: 'Desafíos', desc: 'Preguntas con números nuevos en cada intento, nota y progreso.' }
     ] },
     { name: '📖 Consulta', chapters: [
@@ -251,14 +252,20 @@
     </ul>
   </section>
 
+  <section class="card" id="py-tarjetas">
+    <h2><span class="num">15</span> Tarjetas con gráficos</h2>
+    <p>Practica <b>mirando el dibujo</b>: cada tarjeta muestra un triángulo o dos puntos en el plano y te pregunta qué mide. Las que fallas <b>vuelven a salir más seguido</b>, y un tipo de tarjeta queda <b>dominado ⭐</b> con 3 aciertos seguidos.</p>
+    <div id="py-cards"></div>
+  </section>
+
   <section class="card" id="py-desafios">
-    <h2><span class="num">15</span> Desafíos</h2>
-    <p>Pon a prueba lo que aprendiste. <b>Cada intento trae números nuevos</b>. Al responder verás la explicación, y al terminar tu <b>nota</b> (de 1,0 a 7,0; con el 60 % se aprueba con 4,0). Todos tus intentos quedan guardados para ver cómo vas mejorando.</p>
+    <h2><span class="num">16</span> Desafíos</h2>
+    <p>Pon a prueba lo que aprendiste. <b>Cada intento trae 10 preguntas distintas</b> (rotan entre muchas, en otro orden y con números nuevos, algunas con gráficos). Al responder verás la explicación, y al terminar tu <b>nota</b> (de 1,0 a 7,0; con el 60 % se aprueba con 4,0). Todos tus intentos quedan guardados para ver cómo vas mejorando.</p>
     <div id="py-quiz"></div>
   </section>
 
   <section class="card" id="py-glosario">
-    <h2><span class="num">16</span> Glosario</h2>
+    <h2><span class="num">17</span> Glosario</h2>
     <dl class="glossary">
       <dt>Ángulo recto</dt><dd>Ángulo de 90°, como la esquina de una hoja. Se marca con un cuadradito.</dd>
       <dt>Triángulo rectángulo</dt><dd>Triángulo que tiene un ángulo recto.</dd>
@@ -355,13 +362,155 @@
     } }
   ];
 
+  // Cada tema original apunta al capítulo donde se explica (link "ir a la lección")
+  const CH_ORIGINAL = {
+    'Calcular la hipotenusa': 'py-hipotenusa', 'Calcular un cateto': 'py-cateto', 'Reconocer la hipotenusa': 'py-triangulo', '¿Es rectángulo?': 'py-reciproco',
+    'Distancia entre dos puntos': 'py-distancia', 'Pendiente y largo de un tramo': 'py-pendiente', 'La escalera': 'py-vida', 'Áreas de los cuadrados': 'py-areas',
+    'Distancia al origen': 'py-circulo', 'La pantalla': 'py-vida'
+  };
+  QUIZ_TEMPLATES.forEach(t => { t.chapter = CH_ORIGINAL[t.topic]; });
+
+  // Más problemas de comprensión: historias de la vida real, perímetro, área y ternas
+  const SMALL = [[3, 4, 5], [6, 8, 10], [5, 12, 13], [9, 12, 15], [8, 6, 10], [12, 5, 13], [4, 3, 5]];
+  QUIZ_TEMPLATES.push(
+    { topic: 'El atajo por la plaza', chapter: 'py-vida', make(r) {
+      const [a, b, c] = r.pick(SMALL), k = r.pick([1, 2, 3, 5]);
+      return { q: `Una plaza rectangular mide <b>${a * k} m</b> por <b>${b * k} m</b>. Juan la rodea por dos lados; María la cruza en <b>diagonal</b>. ¿Cuántos metros camina María menos que Juan?`, correct: `${(a + b - c) * k} m`,
+        wrong: [`${c * k} m`, `${(a + b) * k} m`, `${(a + b - c) * k + 2} m`],
+        why: `La diagonal es la hipotenusa: √(${a * k}² + ${b * k}²) = ${c * k} m. Juan camina ${a * k} + ${b * k} = ${(a + b) * k} m. Diferencia: ${(a + b) * k} − ${c * k} = ${(a + b - c) * k} m.` };
+    } },
+    { topic: 'El volantín', chapter: 'py-cateto', make(r) {
+      const [a, b, c] = r.pick([[3, 4, 5], [5, 12, 13], [6, 8, 10], [9, 12, 15]]);
+      return { q: `Un volantín está en el aire con <b>${c} m</b> de hilo estirado. Está justo sobre un punto que queda a <b>${a} m</b> de ti (en el suelo). ¿A qué altura vuela?`, correct: `${b} m`,
+        wrong: [`${c - a} m`, `${c + a} m`, `${Math.round(Math.sqrt(sq(c) + sq(a)))} m`],
+        why: `El hilo es la hipotenusa (${c}) y la distancia en el suelo es un cateto (${a}). Altura = √(${c}² − ${a}²) = √${sq(b)} = ${b} m.` };
+    } },
+    { topic: 'La rampa', chapter: 'py-hipotenusa', make(r) {
+      const [a, b, c] = r.pick([[3, 4, 5], [6, 8, 10], [5, 12, 13], [12, 16, 20]]);
+      return { q: `Una rampa sube <b>${a} m</b> de altura y avanza <b>${b} m</b> en horizontal. ¿Cuánto mide la rampa (la parte inclinada)?`, correct: `${c} m`,
+        wrong: [`${a + b} m`, `${b - a} m`, `${c + 2} m`],
+        why: `La rampa es la hipotenusa: √(${a}² + ${b}²) = √${sq(a) + sq(b)} = ${c} m.` };
+    } },
+    { topic: 'El cable del poste', chapter: 'py-hipotenusa', make(r) {
+      const [a, b, c] = r.pick([[5, 12, 13], [6, 8, 10], [9, 12, 15], [8, 15, 17]]);
+      return { q: `Un poste de <b>${b} m</b> se sujeta con un cable desde su punta hasta un punto del suelo a <b>${a} m</b> de su base. ¿Cuánto mide el cable?`, correct: `${c} m`,
+        wrong: [`${a + b} m`, `${sq(a) + sq(b)} m`, `${c - 1} m`],
+        why: `Poste y suelo forman un ángulo recto. Cable = √(${b}² + ${a}²) = √${sq(a) + sq(b)} = ${c} m.` };
+    } },
+    { topic: 'El barco', chapter: 'py-distancia', make(r) {
+      const [a, b, c] = r.pick([[3, 4, 5], [6, 8, 10], [5, 12, 13], [9, 12, 15]]), k = r.pick([1, 2, 3]);
+      return { q: `Un barco navega <b>${a * k} km</b> hacia el este y luego <b>${b * k} km</b> hacia el norte. ¿A qué distancia en línea recta está del punto de partida?`, correct: `${c * k} km`,
+        wrong: [`${(a + b) * k} km`, `${b * k - a * k} km`, `${c * k + k} km`],
+        why: `Este y norte forman un ángulo recto: distancia = √(${a * k}² + ${b * k}²) = √${sq(c * k)} = ${c * k} km.` };
+    } },
+    { topic: '¿Cabe el palo en la caja?', chapter: 'py-vida', make(r) {
+      const [a, b, c] = r.pick([[3, 4, 5], [6, 8, 10]]), k = r.pick([10, 10, 20]);
+      const L = r.pick([c * k - 5, c * k + 5, c * k - 10, c * k + 10]);
+      const fits = L <= c * k;
+      return { q: `Una caja plana mide <b>${a * k} cm</b> por <b>${b * k} cm</b>. ¿Cabe en ella (apoyado en el fondo) un palo recto de <b>${L} cm</b>?`, correct: fits ? 'Sí, cabe (en diagonal)' : 'No cabe',
+        wrong: [fits ? 'No cabe' : 'Sí, cabe (en diagonal)', 'Solo cabe si se dobla', 'No se puede saber'],
+        why: `Lo más largo que cabe es la diagonal: √(${a * k}² + ${b * k}²) = ${c * k} cm. Como ${L} ${fits ? '≤' : '>'} ${c * k}, ${fits ? 'sí cabe' : 'no cabe'}.` };
+    } },
+    { topic: 'Perímetro con Pitágoras', chapter: 'py-hipotenusa', make(r) {
+      const [a, b, c] = r.pick(SMALL), k = r.pick([1, 2]);
+      return { q: `Un triángulo rectángulo tiene catetos de <b>${a * k} cm</b> y <b>${b * k} cm</b>. ¿Cuánto mide su <b>perímetro</b> (la suma de sus tres lados)?`, correct: `${(a + b + c) * k} cm`,
+        wrong: [`${(a + b) * k} cm`, `${c * k} cm`, `${(a + b + c) * k + 2} cm`],
+        why: `Primero falta la hipotenusa: √(${a * k}² + ${b * k}²) = ${c * k}. Perímetro = ${a * k} + ${b * k} + ${c * k} = ${(a + b + c) * k} cm.` };
+    } },
+    { topic: 'Área con Pitágoras', chapter: 'py-cateto', make(r) {
+      const [a, b, c] = r.pick([[3, 4, 5], [5, 12, 13], [6, 8, 10], [9, 12, 15]]);
+      return { q: `La hipotenusa de un triángulo rectángulo mide <b>${c} cm</b> y un cateto <b>${a} cm</b>. ¿Cuál es su <b>área</b>?`, correct: `${a * b / 2} cm²`,
+        wrong: [`${a * c / 2} cm²`, `${a * b} cm²`, `${a * b / 2 + 3} cm²`],
+        why: `Falta el otro cateto: √(${c}² − ${a}²) = ${b}. Área = base · altura ÷ 2 = ${a}·${b} ÷ 2 = ${a * b / 2} cm².` };
+    } },
+    { topic: 'Reconocer una terna pitagórica', chapter: 'py-ternas', make(r) {
+      const t = r.pick(TRIPLES), bad = (n) => [t[0], t[1], t[2] + n];
+      const opts = [bad(1), bad(2), [t[0] + 1, t[1], t[2]]];
+      return { q: '¿Cuál de estas ternas forma un <b>triángulo rectángulo</b>?', correct: t.join(', '), wrong: opts.map(o => o.join(', ')),
+        why: `Solo ${t.join(', ')} cumple a² + b² = c²: ${sq(t[0])} + ${sq(t[1])} = ${sq(t[2])}. En las otras la suma de los cuadrados no coincide.` };
+    } },
+    { topic: 'La diagonal de la cancha', chapter: 'py-hipotenusa', make(r) {
+      const [a, b, c] = r.pick([[3, 4, 5], [5, 12, 13], [8, 15, 17], [9, 12, 15]]), k = r.pick([2, 4, 5]);
+      return { q: `Una cancha mide <b>${a * k} m</b> de ancho y <b>${b * k} m</b> de largo. Un jugador la cruza de una esquina a la opuesta. ¿Cuántos metros recorre?`, correct: `${c * k} m`,
+        wrong: [`${(a + b) * k} m`, `${(c - 1) * k} m`, `${sq(c * k)} m`],
+        why: `Recorre la diagonal (hipotenusa): √(${a * k}² + ${b * k}²) = ${c * k} m.` };
+    } }
+  );
+
+  // ----- Tarjetas con gráficos -----
+  const TR = [[3, 4, 5], [6, 8, 10], [5, 12, 13], [9, 12, 15], [8, 6, 10], [12, 5, 13], [4, 3, 5]];
+  const GVIEW = { xMin: -1, xMax: 14, yMin: -1, yMax: 14, aspect: 1, step: 1 };
+  const CARD_TEMPLATES = [
+    { topic: 'Hipotenusa en el gráfico', chapter: 'py-hipotenusa', visual: true, make(r) {
+      const [a, b, c] = r.pick(TR);
+      return { q: `Mira el triángulo rectángulo: sus catetos miden <b>${a}</b> y <b>${b}</b>. ¿Cuánto mide la hipotenusa?`,
+        graph: { view: GVIEW, draw(p) {
+          p.grid(); p.axes();
+          p.poly([[0, 0], [a, 0], [0, b]], 'rgba(0,212,170,0.18)', C.b, 3);
+          p.rightAngle([0, 0], [a, 0], [0, b], '#fff', 0.7);
+          p.text(`${a}`, a / 2, 0, C.a, { dy: 18, align: 'center', size: 15 });
+          p.text(`${b}`, 0, b / 2, C.b, { dx: -16, align: 'center', size: 15 });
+          p.text('?', a / 2, b / 2, C.c, { dx: 14, dy: -6, size: 20 });
+        } },
+        correct: String(c), wrong: [String(a + b), String(sq(a) + sq(b)), String(c + 1)],
+        why: `c = √(${a}² + ${b}²) = √(${sq(a)} + ${sq(b)}) = √${sq(c)} = ${c}.` };
+    } },
+    { topic: 'Cateto desconocido (gráfico)', chapter: 'py-cateto', visual: true, make(r) {
+      const [a, b, c] = r.pick(TR);
+      return { q: `En este triángulo rectángulo la hipotenusa mide <b>${c}</b> y un cateto <b>${a}</b>. ¿Cuánto mide el cateto marcado con <b>?</b>`,
+        graph: { view: GVIEW, draw(p) {
+          p.grid(); p.axes();
+          p.poly([[0, 0], [a, 0], [0, b]], 'rgba(255,107,157,0.14)', C.c, 3);
+          p.rightAngle([0, 0], [a, 0], [0, b], '#fff', 0.7);
+          p.text(`${a}`, a / 2, 0, C.a, { dy: 18, align: 'center', size: 15 });
+          p.text('?', 0, b / 2, C.b, { dx: -16, align: 'center', size: 20 });
+          p.text(`${c}`, a / 2, b / 2, C.c, { dx: 14, dy: -6, size: 15 });
+        } },
+        correct: String(b), wrong: [String(c - a), String(c + a), String(b + 2)],
+        why: `b = √(${c}² − ${a}²) = √(${sq(c)} − ${sq(a)}) = √${sq(b)} = ${b}.` };
+    } },
+    { topic: 'Distancia entre dos puntos (gráfico)', chapter: 'py-distancia', visual: true, make(r) {
+      const [a, b, c] = r.pick(TR.slice(0, 6)), sx = r.pick([1, -1]), sy = r.pick([1, -1]);
+      const x1 = -sx * Math.floor(a / 2), y1 = -sy * Math.floor(b / 2), x2 = x1 + sx * a, y2 = y1 + sy * b;
+      return { q: `¿Qué distancia hay entre los puntos <b>P(${N(x1)}, ${N(y1)})</b> y <b>Q(${N(x2)}, ${N(y2)})</b>?`,
+        graph: { view: { xMin: -8, xMax: 8, yMin: -8, yMax: 8, aspect: 1, step: 1 }, draw(p) {
+          p.grid(); p.axes();
+          p.segment(x1, y1, x2, y1, 'rgba(255,255,255,0.45)', 1.5, [5, 5]);
+          p.segment(x2, y1, x2, y2, 'rgba(255,255,255,0.45)', 1.5, [5, 5]);
+          p.segment(x1, y1, x2, y2, C.c, 3);
+          p.point(x1, y1, C.y, 'P'); p.point(x2, y2, C.a, 'Q');
+        } },
+        correct: String(c), wrong: [String(a + b), String(sq(a) + sq(b)), String(c + 2)],
+        why: `Los segmentos punteados forman un triángulo rectángulo: avanza ${a} y sube ${b}. Distancia = √(${a}² + ${b}²) = √${sq(c)} = ${c}.` };
+    } },
+    { topic: 'Reconocer la hipotenusa (figura)', chapter: 'py-triangulo', visual: true, make(r) {
+      const a = r.int(4, 7), b = r.int(3, 6) + (r.chance(0.5) ? 2 : 0);
+      const fx = r.pick([1, -1]), fy = r.pick([1, -1]);
+      const V = [[0, 0], [a * fx, 0], [0, b * fy]];
+      const names = ['p', 'q', 'r'];
+      for (let i = names.length - 1; i > 0; i--) { const j = r.int(0, i); [names[i], names[j]] = [names[j], names[i]]; }
+      // lado 0: V0–V1 (cateto), lado 1: V0–V2 (cateto), lado 2: V1–V2 (hipotenusa)
+      const sides = [[V[0], V[1]], [V[0], V[2]], [V[1], V[2]]];
+      return { q: 'Cada lado del triángulo tiene una letra. ¿Cuál es la <b>hipotenusa</b>?',
+        graph: { view: { xMin: -9, xMax: 9, yMin: -9, yMax: 9, aspect: 1, step: 1 }, draw(p) {
+          p.grid(); p.axes();
+          p.poly(V, 'rgba(108,99,255,0.15)', C.line, 3);
+          p.rightAngle(V[0], V[1], V[2], '#fff', 1);
+          sides.forEach(([s, e], i) => p.text(names[i], (s[0] + e[0]) / 2, (s[1] + e[1]) / 2, '#FFD166', { dx: i === 2 ? 16 * fx : i === 1 ? -16 * fx : 0, dy: i === 2 ? -16 * fy : i === 1 ? 5 : (fy > 0 ? 22 : -8), align: 'center', size: 18 }));
+        } },
+        correct: `El lado ${names[2]}`, wrong: [`El lado ${names[0]}`, `El lado ${names[1]}`, 'Ninguno: no hay hipotenusa'],
+        why: `La hipotenusa es el lado que está <b>frente al ángulo recto</b> (el cuadradito) y es el más largo: aquí, el lado ${names[2]}.` };
+    } }
+  ];
+  QUIZ_TEMPLATES.push(...CARD_TEMPLATES);
+
   // ----- Estado (se guarda en ZenBan y en el navegador) -----
   const st = {
     arA: 3, arB: 4, dmA: 2, dmB: 3, hiA: 6, hiB: 8, caC: 13, caA: 5, rc: [5, 12, 13],
     labA: 3, labB: 4, P: { x: -3, y: -2 }, Q: { x: 3, y: 6 }, peM: 0.75, ciR: 5, teK: 1, teP: 2, teQ: 1, vida: 'escalera',
     vEsc: { L: 5, d: 3 }, vPan: { w: 16, h: 9 }, vAta: { w: 8, h: 6 }
   };
-  let quiz = null, nav = null, pending = null, rootEl = null;
+  let quiz = null, cards = null, nav = null, pending = null, rootEl = null;
   const plots = {};
   const stop = {};
   const refreshers = [];
@@ -1022,6 +1171,7 @@
       setupLife(container);
       setupTriples(container);
       quiz = LessonQuiz(container.querySelector('#py-quiz'), { id: 'pitagoras', templates: QUIZ_TEMPLATES, onChange: changed });
+      cards = LessonCards(container.querySelector('#py-cards'), { id: 'pitagoras', templates: CARD_TEMPLATES, onChange: changed });
       // Gráfica ↔ tabla (el punto tocado se pinta en la tabla; la fila tocada se marca en la gráfica)
       Plot.linkTable(plots.pend, container.querySelector('#py-tab-pend'));
       Plot.linkTable(plots.circ, container.querySelector('#py-tab-circ'));
@@ -1032,7 +1182,7 @@
     goTo(ch) { if (nav) nav.goTo(ch); },
     getState() {
       if (!rootEl) return pending;
-      return { ...JSON.parse(JSON.stringify(st)), quiz: quiz ? quiz.getState() : null, nav: nav ? nav.getState() : null };
+      return { ...JSON.parse(JSON.stringify(st)), quiz: quiz ? quiz.getState() : null, cards: cards ? cards.getState() : null, nav: nav ? nav.getState() : null };
     },
     setState(s) {
       if (!s) return;
@@ -1040,6 +1190,7 @@
       Object.keys(st).forEach(k => { if (s[k] !== undefined) st[k] = JSON.parse(JSON.stringify(s[k])); });
       refreshers.forEach(r => r());
       if (quiz && s.quiz) quiz.setState(s.quiz);
+      if (cards && s.cards) cards.setState(s.cards);
       if (nav && s.nav) nav.setState(s.nav);
     },
     summary() {

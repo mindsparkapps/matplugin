@@ -17,7 +17,7 @@
   }
 
   // Capítulos de la lección, agrupados por bloques (menú lateral y mapa de la portada: chapters.js)
-  const INTRO = 'Aprende qué es una función, cómo se dibuja una recta, qué significa cada parte de su ecuación y cómo se relaciona con la <b>proporción directa</b> y la <b>proporción inversa</b>. Son 14 capítulos cortos, con gráficas que puedes mover, animaciones y desafíos con nota al final. Puedes ir en orden o saltar al que quieras desde el menú.';
+  const INTRO = 'Aprende qué es una función, cómo se dibuja una recta, qué significa cada parte de su ecuación y cómo se relaciona con la <b>proporción directa</b> y la <b>proporción inversa</b>. Son 15 capítulos cortos, con gráficas que puedes mover, animaciones y desafíos con nota al final. Puedes ir en orden o saltar al que quieras desde el menú.';
   const GROUPS = [
     { name: '🚀 Empezar', chapters: [
       { id: 'ln-maquina', title: '¿Qué es una función?', desc: 'La máquina de números: entra x, sale y.' }
@@ -44,6 +44,7 @@
       { id: 'ln-errores', title: 'Errores comunes', desc: 'Las trampas más típicas y cómo evitarlas.' }
     ] },
     { name: '🏆 Evaluación', chapters: [
+      { id: 'ln-tarjetas', title: 'Tarjetas con gráficos', desc: 'Mira el gráfico y descubre: ¿afín o lineal?, ¿pendiente positiva o negativa?…' },
       { id: 'ln-desafios', title: 'Desafíos', desc: 'Preguntas con números nuevos en cada intento, nota y progreso.' }
     ] },
     { name: '📖 Consulta', chapters: [
@@ -258,14 +259,20 @@
     </ul>
   </section>
 
+  <section class="card" id="ln-tarjetas">
+    <h2><span class="num">13</span> Tarjetas con gráficos</h2>
+    <p>Aquí practicas <b>interpretando dibujos</b>: cada tarjeta te muestra una gráfica y te pregunta algo (¿es lineal o afín?, ¿la pendiente es positiva o negativa?, ¿dónde corta los ejes?, ¿cuál es la ecuación?…). Las que fallas <b>vuelven a salir más seguido</b>, y un tipo de tarjeta queda <b>dominado ⭐</b> cuando lo aciertas 3 veces seguidas. Toca la gráfica para ver las coordenadas de un punto.</p>
+    <div id="ln-cards"></div>
+  </section>
+
   <section class="card" id="ln-desafios">
-    <h2><span class="num">13</span> Desafíos</h2>
-    <p>Pon a prueba lo que aprendiste. <b>Cada intento trae números nuevos</b>, así que no sirve memorizar: hay que entender. Al responder verás la explicación, y al terminar tu <b>nota</b> (de 1,0 a 7,0; con el 60 % se aprueba con 4,0). Todos tus intentos quedan guardados: puedes revisar en qué fallaste y ver en el gráfico cómo vas mejorando.</p>
+    <h2><span class="num">14</span> Desafíos</h2>
+    <p>Pon a prueba lo que aprendiste. <b>Cada intento trae 10 preguntas distintas</b> (van rotando entre muchas, en otro orden y con números nuevos), así que no sirve memorizar: hay que entender. Algunas traen gráficos para interpretar. Al responder verás la explicación, y al terminar tu <b>nota</b> (de 1,0 a 7,0; con el 60 % se aprueba con 4,0). Todos tus intentos quedan guardados: puedes revisar en qué fallaste y ver en el gráfico cómo vas mejorando.</p>
     <div id="ln-quiz"></div>
   </section>
 
   <section class="card" id="ln-glosario">
-    <h2><span class="num">14</span> Glosario</h2>
+    <h2><span class="num">15</span> Glosario</h2>
     <dl class="glossary">
       <dt>Función</dt><dd>Regla que a cada número de entrada (x) le asigna un solo número de salida (y).</dd>
       <dt>Variable independiente (<span class="t-x">x</span>)</dt><dd>La entrada: el valor que eliges tú.</dd>
@@ -364,8 +371,235 @@
     } }
   ];
 
+  // A cada tema de las 10 preguntas originales se le asigna el capítulo donde se explica (el link "ir a la lección")
+  const CH_ORIGINAL = {
+    'Pendiente en la ecuación': 'ln-partes', 'Corte con el eje y': 'ln-ejes', 'Proporción directa': 'ln-directa', 'Signo de la pendiente': 'ln-pendiente',
+    'Calcular y para un x': 'ln-afin', 'Pendiente con dos puntos': 'ln-pendiente', 'Proporción inversa': 'ln-inversa', 'Corte con el eje x (raíz)': 'ln-ejes',
+    'Rectas paralelas': 'ln-pendiente', 'Problema de proporción directa': 'ln-directa'
+  };
+  QUIZ_TEMPLATES.forEach(t => { t.chapter = CH_ORIGINAL[t.topic]; });
+
+  const money = (v) => `$${v.toLocaleString('es-CL')}`;
+
+  // Más problemas de comprensión (historias con números nuevos): se suman a las 10 de arriba y rotan entre intentos
+  QUIZ_TEMPLATES.push(
+    { topic: 'Problema del taxi', chapter: 'ln-afin', make(r) {
+      const b = r.int(2, 6) * 100, c = r.int(2, 5) * 100, k = r.int(3, 9);
+      return { q: `Un taxi cobra <b>${money(b)}</b> por subirte y <b>${money(c)}</b> por cada kilómetro. ¿Cuánto pagas por un viaje de <b>${k} km</b>?`,
+        correct: money(b + c * k), wrong: [money((b + c) * k), money(c * k), money(b * k + c)],
+        why: `Los kilómetros se multiplican: ${c}·${k} = ${c * k}. La bajada se suma una sola vez: ${c * k} + ${b} = ${b + c * k}. Es una función afín: y = ${c}x + ${b}.` };
+    } },
+    { topic: 'Armar la ecuación de un problema', chapter: 'ln-afin', make(r) {
+      const M = r.int(2, 9) * 1000, c = r.int(2, 9) * 500;
+      return { q: `Un gimnasio cobra <b>${money(M)}</b> de matrícula (una sola vez) y <b>${money(c)}</b> por cada mes. ¿Qué ecuación da lo que pagas (y) después de x meses?`,
+        correct: `y = ${c}x + ${M}`, wrong: [`y = ${M}x + ${c}`, `y = ${c + M}x`, `y = ${c}x`],
+        why: `Lo que se repite cada mes va multiplicando a x (m = ${c}); la matrícula se paga una sola vez, así que va sumada y sola (n = ${M}).` };
+    } },
+    { topic: 'Significado de n en un problema', chapter: 'ln-partes', make(r) {
+      const ctx = r.pick([
+        { who: 'un taxi', x: 'kilómetros', fixed: 'la bajada (lo que cobran apenas te subes)', unit: 'cada kilómetro' },
+        { who: 'un gimnasio', x: 'meses', fixed: 'la matrícula (se paga una sola vez)', unit: 'cada mes' },
+        { who: 'un plan de internet', x: 'GB', fixed: 'el cargo fijo mensual', unit: 'cada GB extra' }
+      ]);
+      const c = r.int(2, 9) * 100, n = r.int(2, 9) * 1000;
+      return { q: `Con ${ctx.who}, lo que pagas es <b>y = ${c}x + ${n}</b>, donde x son los ${ctx.x}. ¿Qué significa el <b>${n}</b>?`,
+        correct: `Lo que pagas aunque x sea 0: ${ctx.fixed}`, wrong: [`Lo que cuesta ${ctx.unit}`, `La cantidad de ${ctx.x}`, 'El total que pagas al final'],
+        why: `El número que va solo (n) es el valor de y cuando x = 0: el cobro fijo. Lo que se repite ${ctx.unit} es el ${c}, que multiplica a x.` };
+    } },
+    { topic: 'Significado de m en un problema', chapter: 'ln-pendiente', make(r) {
+      const ctx = r.pick([
+        { x: 'minutos de llamada', per: 'cada minuto de llamada' },
+        { x: 'kilos de pan', per: 'cada kilo de pan' },
+        { x: 'horas de arriendo de una bici', per: 'cada hora de arriendo' }
+      ]);
+      const c = r.int(2, 9) * 100, n = r.int(1, 5) * 500;
+      return { q: `El costo es <b>y = ${c}x + ${n}</b>, con x = ${ctx.x}. ¿Qué significa el <b>${c}</b>?`,
+        correct: `Lo que aumenta el costo por ${ctx.per}`, wrong: [`Lo que pagas aunque x sea 0`, `El costo total`, `Cuántos ${ctx.x} hay que comprar`],
+        why: `El número que multiplica a x es la pendiente: cuánto sube y cada vez que x aumenta 1. Aquí, ${money(c)} más por ${ctx.per}.` };
+    } },
+    { topic: 'Ecuación con un punto y la pendiente', chapter: 'ln-dospuntos', make(r) {
+      const m = r.nz(-4, 4), n = r.nz(-6, 6), x1 = r.int(1, 4), y1 = m * x1 + n;
+      return { q: `Una recta tiene pendiente <b>${N(m)}</b> y pasa por el punto <b>(${x1}, ${N(y1)})</b>. ¿Cuál es su ecuación?`,
+        correct: eqTxt(m, n), wrong: [eqTxt(m, y1), eqTxt(m, -n), eqTxt(n, m)],
+        why: `Usa y = ${N(m)}x + n con el punto: ${N(y1)} = ${N(m)}·${x1} + n → ${N(y1)} = ${N(m * x1)} + n → n = ${N(n)}. La ecuación es ${eqTxt(m, n)}.` };
+    } },
+    { topic: '¿Qué tipo de función muestra la tabla?', chapter: 'ln-compara', make(r) {
+      const kind = r.pick(['directa', 'afin', 'inversa']);
+      let xs = [1, 2, 3, 4], ys;
+      if (kind === 'directa') { const m = r.int(2, 9); ys = xs.map(x => m * x); }
+      else if (kind === 'afin') { const m = r.int(2, 6), n = r.int(1, 7); ys = xs.map(x => m * x + n); }
+      else { xs = [1, 2, 3, 6]; const k = 6 * r.int(1, 5); ys = xs.map(x => k / x); }
+      const right = { directa: 'Proporción directa (lineal)', afin: 'Función afín (recta, pero no es proporción)', inversa: 'Proporción inversa' }[kind];
+      return { q: `En una tabla, x = ${xs.join(', ')} y entonces y = ${ys.join(', ')}. ¿Qué tipo de relación es?`, correct: right,
+        wrong: Object.values({ directa: 'Proporción directa (lineal)', afin: 'Función afín (recta, pero no es proporción)', inversa: 'Proporción inversa' }).filter(v => v !== right),
+        why: kind === 'directa' ? 'y ÷ x da siempre el mismo número: es proporción directa.' : kind === 'afin' ? 'y sube siempre lo mismo cuando x sube 1, pero y ÷ x cambia: es afín.' : 'x · y da siempre lo mismo (y baja cuando x sube): es proporción inversa.' };
+    } },
+    { topic: 'Problema de velocidad y tiempo', chapter: 'ln-inversa', make(r) {
+      const D = r.pick([120, 180, 240, 360]);
+      const divs = [20, 30, 40, 45, 60, 80, 90, 120].filter(d => D % d === 0);
+      const v1 = r.pick(divs); let v2 = r.pick(divs); if (v2 === v1) v2 = divs.find(d => d !== v1);
+      const t1 = D / v1, t2 = D / v2;
+      return { q: `Un auto va a <b>${v1} km/h</b> y tarda <b>${f(t1, 1)} horas</b> en llegar. ¿Cuánto tarda si va a <b>${v2} km/h</b>?`, correct: `${f(t2, 1)} horas`,
+        wrong: [`${f(t1 * v2 / v1, 1)} horas`, `${f(t1 + (v2 - v1) / 10, 1)} horas`, `${f(t2 + 1, 1)} horas`],
+        why: `Más rapidez, menos tiempo: es proporción inversa. La distancia no cambia: ${v1}·${f(t1, 1)} = ${D} km. Entonces ${D} ÷ ${v2} = ${f(t2, 1)} horas.` };
+    } },
+    { topic: 'Litros por minuto (pendiente)', chapter: 'ln-pendiente', make(r) {
+      const rate = r.int(3, 9), t1 = r.int(1, 3), t2 = t1 + r.int(2, 4), L0 = r.int(1, 4) * 10;
+      const L1 = L0 + rate * t1, L2 = L0 + rate * t2;
+      return { q: `Una piscina se llena con una manguera. A los ${t1} min hay <b>${L1} L</b> y a los ${t2} min hay <b>${L2} L</b>. ¿Cuántos litros entran por minuto?`, correct: `${rate} L/min`,
+        wrong: [`${L2 - L1} L/min`, `${Math.round(L2 / t2)} L/min`, `${rate + 2} L/min`],
+        why: `Es la pendiente: (${L2} − ${L1}) ÷ (${t2} − ${t1}) = ${L2 - L1} ÷ ${t2 - t1} = ${rate} L por minuto.` };
+    } },
+    { topic: 'Despejar x en un problema', chapter: 'ln-afin', make(r) {
+      const h0 = r.int(5, 20), g = r.int(2, 6), w = r.int(3, 9), H = h0 + g * w;
+      return { q: `Una planta mide <b>${h0} cm</b> y crece <b>${g} cm</b> por semana. ¿En cuántas semanas mide <b>${H} cm</b>?`, correct: `${w} semanas`,
+        wrong: [`${w + 1} semanas`, `${Math.round(H / g)} semanas`, `${H - h0} semanas`],
+        why: `y = ${g}x + ${h0}. Con y = ${H}: ${H} = ${g}x + ${h0} → ${H - h0} = ${g}x → x = ${H - h0} ÷ ${g} = ${w} semanas.` };
+    } },
+    { topic: '¿Cuál sube más rápido?', chapter: 'ln-pendiente', make(r) {
+      const m1 = r.int(1, 6); let m2 = r.int(1, 6); if (m2 === m1) m2 = m1 + 2;
+      const n1 = r.int(-5, 5), n2 = r.int(-5, 5);
+      return { q: `Recta A: <b>${eqTxt(m1, n1)}</b>. Recta B: <b>${eqTxt(m2, n2)}</b>. ¿Cuál sube más rápido?`, correct: m1 > m2 ? 'La recta A' : 'La recta B',
+        wrong: [m1 > m2 ? 'La recta B' : 'La recta A', 'Suben igual de rápido', 'Ninguna sube'],
+        why: `Importa la pendiente (el número que multiplica a x): A tiene ${m1} y B tiene ${m2}. Sube más rápido la de mayor pendiente.` };
+    } },
+    { topic: 'Un punto sobre la recta', chapter: 'ln-lineal', make(r) {
+      const m = r.nz(-4, 4), n = r.nz(-6, 6), x0 = r.nz(-4, 4), y0 = m * x0 + n;
+      return { q: `¿Cuál de estos puntos está sobre la recta <b>${eqTxt(m, n)}</b>?`, correct: `(${N(x0)}, ${N(y0)})`,
+        wrong: [`(${N(x0)}, ${N(y0 + 1)})`, `(${N(y0)}, ${N(x0)})`, `(${N(x0)}, ${N(m * x0 - n)})`],
+        why: `Reemplaza x = ${N(x0)}: y = ${N(m)}·${P(x0)} ${n < 0 ? '−' : '+'} ${Math.abs(n)} = ${N(y0)}. Solo (${N(x0)}, ${N(y0)}) cumple la ecuación.` };
+    } },
+    { topic: 'Planes: ¿cuál conviene?', chapter: 'ln-compara', make(r) {
+      const fixed = r.int(3, 6) * 1000, c = r.int(2, 4) * 500, d = r.int(5, 9) * 500, g = r.int(2, 9);
+      const A = fixed + c * g, B = d * g;
+      if (A === B) return this.make(r);
+      return { q: `Plan A: <b>${money(fixed)}</b> fijos + <b>${money(c)}</b> por GB. Plan B: <b>${money(d)}</b> por GB, sin cargo fijo. Si usarás <b>${g} GB</b>, ¿cuál es más barato?`,
+        correct: A < B ? 'El plan A' : 'El plan B', wrong: [A < B ? 'El plan B' : 'El plan A', 'Cuestan lo mismo', 'No se puede saber'],
+        why: `Plan A: ${money(fixed)} + ${c}·${g} = ${money(A)}. Plan B (lineal): ${d}·${g} = ${money(B)}. Es más barato el ${A < B ? 'A' : 'B'}.` };
+    } },
+    { topic: 'Proporción directa con 0', chapter: 'ln-lineal', make(r) {
+      const p = r.int(2, 9) * 50;
+      return { q: `Los lápices cuestan <b>y = ${p}x</b> pesos (x = cantidad). ¿Cuánto cuesta no comprar ninguno (x = 0) y qué tipo de función es?`, correct: '$0 · es lineal (proporción directa)',
+        wrong: [`${money(p)} · es afín`, '$0 · es afín', `${money(p)} · es lineal (proporción directa)`],
+        why: `Con x = 0: y = ${p}·0 = 0. Como no hay número sumado (n = 0), la recta pasa por el origen: es lineal.` };
+    } },
+    { topic: 'Reparto (proporción inversa)', chapter: 'ln-inversa', make(r) {
+      const T = r.pick([24, 36, 48, 60]);
+      const divs = [2, 3, 4, 6, 8, 12].filter(d => T % d === 0);
+      const p = r.pick(divs); let q = r.pick(divs); if (q === p) q = divs.find(d => d !== p);
+      return { q: `Se reparten <b>${T} caramelos</b> en partes iguales entre <b>${p} amigos</b> (${T / p} cada uno). Si en vez de ${p} fueran <b>${q} amigos</b>, ¿cuántos le tocan a cada uno?`, correct: String(T / q),
+        wrong: [String(T / p), String(T / q + 2), String(T - q)],
+        why: `Más amigos, menos para cada uno: x·y = ${T} siempre. Con ${q} amigos: ${T} ÷ ${q} = ${T / q}.` };
+    } },
+    { topic: 'Rapidez constante (proporción directa)', chapter: 'ln-directa', make(r) {
+      const v = r.int(3, 9), t1 = r.int(2, 5), mult = r.int(2, 4), T = t1 * mult;
+      return { q: `Una ciclista recorre <b>${v * t1} m</b> en <b>${t1} s</b> con rapidez constante. ¿Cuántos metros recorre en <b>${T} s</b>?`, correct: `${v * T} m`,
+        wrong: [`${v * t1 + T} m`, `${v * t1 * T} m`, `${v * (T - 1)} m`],
+        why: `Es proporción directa: ${v * t1} ÷ ${t1} = ${v} m por segundo (k). En ${T} s: ${v}·${T} = ${v * T} m.` };
+    } },
+    { topic: 'Recta que baja en un problema', chapter: 'ln-pendiente', make(r) {
+      const g = r.int(2, 9);
+      return { q: `Un celular tiene <b>100 %</b> de batería y gasta <b>${g} %</b> cada hora. ¿Qué ecuación da la batería y después de x horas?`, correct: eqTxt(-g, 100),
+        wrong: [eqTxt(g, 100), eqTxt(-g, 0), eqTxt(100, -g)],
+        why: `Parte de 100 (n = 100) y baja ${g} por hora, así que la pendiente es negativa (m = −${g}): ${eqTxt(-g, 100)}.` };
+    } }
+  );
+
+  // ----- Tarjetas con gráficos (la parte matemática se interpreta mirando el dibujo) -----
+  const GV = { xMin: -6, xMax: 6, yMin: -10, yMax: 10, aspect: 1, step: 1 };
+  const lineGraph = (m, n, extra) => ({ view: GV, draw(p) { p.grid(); p.axes(); p.fn(x => m * x + n, C.line); if (extra) extra(p); } });
+  const hyper = (p, k, color = C.inv) => { p.fn(x => k / x, color, { xFrom: 0.03, width: 3.5 }); p.fn(x => k / x, color, { xTo: -0.03, width: 3.5 }); };
+
+  const CARD_TEMPLATES = [
+    { topic: 'Signo de la pendiente (gráfico)', chapter: 'ln-pendiente', visual: true, make(r) {
+      const kind = r.pick(['sube', 'baja', 'horizontal']);
+      const m = kind === 'sube' ? r.int(1, 3) : kind === 'baja' ? -r.int(1, 3) : 0, n = r.int(-4, 4);
+      const right = { sube: 'Positiva: la recta sube', baja: 'Negativa: la recta baja', horizontal: 'Cero: la recta es horizontal' }[kind];
+      return { q: 'Mira la recta. ¿Cómo es su <b>pendiente</b>?', graph: lineGraph(m, n), correct: right,
+        wrong: ['Positiva: la recta sube', 'Negativa: la recta baja', 'Cero: la recta es horizontal'].filter(v => v !== right),
+        why: m > 0 ? 'De izquierda a derecha la recta sube, así que la pendiente es positiva.' : m < 0 ? 'De izquierda a derecha la recta baja, así que la pendiente es negativa.' : 'La recta no sube ni baja: es horizontal y su pendiente es 0.' };
+    } },
+    { topic: '¿Lineal, afín o inversa? (gráfico)', chapter: 'ln-compara', visual: true, make(r) {
+      const kind = r.pick(['lineal', 'afin', 'inversa']);
+      const m = r.nz(-2, 2), n = r.nz(-5, 5), k = r.nz(-6, 6);
+      const opts = { lineal: 'Función lineal (recta por el origen)', afin: 'Función afín (recta que no pasa por el origen)', inversa: 'Proporción inversa (hipérbola)' };
+      const graph = kind === 'inversa' ? { view: GV, draw(p) { p.grid(); p.axes(); hyper(p, k); } } : lineGraph(m, kind === 'lineal' ? 0 : n);
+      return { q: '¿Qué tipo de relación dibuja este gráfico?', graph, correct: opts[kind], wrong: Object.values(opts).filter(v => v !== opts[kind]),
+        why: kind === 'lineal' ? 'Es una recta que pasa por el origen (0, 0): función lineal, o proporción directa.' : kind === 'afin' ? `Es una recta, pero corta el eje y en (0, ${N(n)}), no en el origen: función afín.` : 'No es una recta sino una curva con dos ramas que no toca los ejes: es una hipérbola, la gráfica de la proporción inversa.' };
+    } },
+    { topic: 'Pendiente desde el gráfico', chapter: 'ln-pendiente', visual: true, make(r) {
+      const m = r.nz(-2, 2), n = r.int(-3, 3), a = r.int(-3, 0), dx = r.int(1, 3), b = a + dx;
+      const ya = m * a + n, yb = m * b + n;
+      return { q: `La recta pasa por <b>A(${N(a)}, ${N(ya)})</b> y <b>B(${N(b)}, ${N(yb)})</b>. ¿Cuál es su pendiente?`,
+        graph: lineGraph(m, n, p => { p.point(a, ya, C.y, 'A'); p.point(b, yb, C.x, 'B'); }),
+        correct: N(m), wrong: [N(-m), N(m * dx), N(m + 1)],
+        why: `m = (${N(yb)} − ${P(ya)}) ÷ (${N(b)} − ${P(a)}) = ${N(yb - ya)} ÷ ${dx} = ${N(m)}. Mirando el gráfico: por cada paso a la derecha, la recta ${m > 0 ? 'sube' : 'baja'} ${abs(m)}.` };
+    } },
+    { topic: 'Corte con el eje y (gráfico)', chapter: 'ln-ejes', visual: true, make(r) {
+      const m = r.nz(-2, 2), n = r.nz(-5, 5);
+      return { q: '¿En qué punto corta esta recta al <b>eje y</b> (el eje vertical)?', graph: lineGraph(m, n), correct: `(0, ${N(n)})`,
+        wrong: [`(${N(n)}, 0)`, `(0, ${N(-n)})`, `(0, ${N(m)})`],
+        why: `Donde la recta cruza el eje vertical x vale 0 y y vale ${N(n)}: el punto es (0, ${N(n)}). Ese número es la n de y = mx + n.` };
+    } },
+    { topic: 'Ecuación desde el gráfico', chapter: 'ln-dospuntos', visual: true, make(r) {
+      const m = r.nz(-2, 2), n = r.nz(-5, 5);
+      return { q: '¿Cuál es la <b>ecuación</b> de esta recta?', graph: lineGraph(m, n), correct: eqTxt(m, n),
+        wrong: [eqTxt(-m, n), eqTxt(m, -n), eqTxt(n, m)],
+        why: `Corta el eje y en (0, ${N(n)}), así que n = ${N(n)}. Y ${m > 0 ? 'sube' : 'baja'} ${abs(m)} por cada paso a la derecha: m = ${N(m)}. Ecuación: ${eqTxt(m, n)}.` };
+    } },
+    { topic: 'Corte con el eje x (gráfico)', chapter: 'ln-ejes', visual: true, make(r) {
+      const m = r.nz(-2, 2), root = r.nz(-4, 4), n = -m * root;
+      return { q: '¿En qué valor de <b>x</b> corta esta recta al eje horizontal (la raíz)?', graph: lineGraph(m, n), correct: `x = ${N(root)}`,
+        wrong: [`x = ${N(-root)}`, `x = ${N(n)}`, `x = ${N(m)}`],
+        why: `En el eje horizontal y vale 0. La recta lo cruza en x = ${N(root)}, es decir, en el punto (${N(root)}, 0).` };
+    } },
+    { topic: 'Comparar pendientes (gráfico)', chapter: 'ln-pendiente', visual: true, make(r) {
+      const same = r.chance(0.25);
+      const m1 = r.int(1, 3); let m2 = same ? m1 : r.int(1, 3); if (!same && m2 === m1) m2 = m1 === 3 ? 1 : m1 + 1;
+      const n1 = r.int(-4, 0), n2 = same ? n1 + r.pick([-3, 3]) : r.int(0, 4);
+      const right = same ? 'Tienen la misma pendiente' : m1 > m2 ? 'La recta violeta' : 'La recta naranja';
+      return { q: 'Hay dos rectas, una <b style="color:#6C63FF">violeta</b> y una <b style="color:#FFA751">naranja</b>. ¿Cuál tiene <b>mayor pendiente</b>?',
+        graph: { view: GV, draw(p) { p.grid(); p.axes(); p.fn(x => m1 * x + n1, C.line); p.fn(x => m2 * x + n2, C.y); } },
+        correct: right, wrong: ['La recta violeta', 'La recta naranja', 'Tienen la misma pendiente'].filter(v => v !== right),
+        why: same ? 'Las dos rectas suben igual de inclinadas (son paralelas): tienen la misma pendiente.' : `La más inclinada es la ${m1 > m2 ? 'violeta' : 'naranja'}: avanza lo mismo hacia la derecha pero sube más.` };
+    } },
+    { topic: 'Leer y en el gráfico', chapter: 'ln-lineal', visual: true, make(r) {
+      const m = r.nz(-2, 2), n = r.int(-3, 3), x0 = r.int(1, 3), y0 = m * x0 + n;
+      return { q: `Mira el punto marcado sobre la recta. ¿Cuánto vale <b>y</b> cuando <b>x = ${x0}</b>?`,
+        graph: lineGraph(m, n, p => { p.segment(x0, 0, x0, y0, 'rgba(255,255,255,0.5)', 1.5, [4, 4]); p.point(x0, y0, C.m); }),
+        correct: N(y0), wrong: [N(-y0), N(x0), N(y0 + 1)],
+        why: `Subes (o bajas) desde x = ${x0} hasta la recta y lees la altura en el eje vertical: y = ${N(y0)}.` };
+    } },
+    { topic: 'Hipérbola: signo de k (gráfico)', chapter: 'ln-inversa', visual: true, make(r) {
+      const k = r.nz(-6, 6);
+      const right = k > 0 ? 'k es positivo (ramas en los cuadrantes 1 y 3)' : 'k es negativo (ramas en los cuadrantes 2 y 4)';
+      return { q: 'Este gráfico es de la proporción inversa <b>y = k ÷ x</b>. ¿Cómo es k?', graph: { view: GV, draw(p) { p.grid(); p.axes(); hyper(p, k); } },
+        correct: right, wrong: ['k es positivo (ramas en los cuadrantes 1 y 3)', 'k es negativo (ramas en los cuadrantes 2 y 4)', 'k es cero'].filter(v => v !== right),
+        why: k > 0 ? 'Las ramas están arriba a la derecha y abajo a la izquierda: x e y tienen el mismo signo, así que k = x·y es positivo.' : 'Las ramas están arriba a la izquierda y abajo a la derecha: x e y tienen signos opuestos, así que k = x·y es negativo.' };
+    } },
+    { topic: '¿Son paralelas? (gráfico)', chapter: 'ln-pendiente', visual: true, make(r) {
+      const par = r.chance(0.5);
+      const m1 = r.nz(-2, 2), n1 = r.int(-4, -1), n2 = r.int(1, 4);
+      const m2 = par ? m1 : -m1;
+      const right = par ? 'Sí, son paralelas' : 'No, se cruzan';
+      return { q: '¿Estas dos rectas son <b>paralelas</b>?', graph: { view: GV, draw(p) { p.grid(); p.axes(); p.fn(x => m1 * x + n1, C.line); p.fn(x => m2 * x + n2, C.y); } },
+        correct: right, wrong: ['Sí, son paralelas', 'No, se cruzan', 'Son la misma recta'].filter(v => v !== right),
+        why: par ? 'Las dos suben (o bajan) igual: misma pendiente y distinto corte con el eje y. Nunca se cruzan.' : 'Tienen pendientes distintas (una sube y la otra baja), así que en algún punto se cruzan.' };
+    } },
+    { topic: 'Gráfico de un taxi', chapter: 'ln-afin', visual: true, make(r) {
+      const n = r.int(1, 4), m = r.int(1, 3), ask = r.pick(['bajada', 'km']);
+      return { q: ask === 'bajada' ? 'Este gráfico muestra lo que cobra un taxi (y, en miles de pesos) según los kilómetros (x). ¿Cuánto cobra solo por <b>subirte</b> (0 km)?' : 'Este gráfico muestra lo que cobra un taxi (y, en miles de pesos) según los kilómetros (x). ¿Cuánto <b>aumenta el cobro por cada km</b>?',
+        graph: { view: { xMin: -0.5, xMax: 7, yMin: -1, yMax: 16, aspect: 0.8, step: 1 }, draw(p) { p.grid(); p.axes({ x: 'km', y: 'miles $' }); p.fn(x => m * x + n, C.afin, { xFrom: 0, xTo: 7 }); p.point(0, n, C.y); p.point(1, m + n, C.x); } },
+        correct: ask === 'bajada' ? `${n} mil pesos` : `${m} mil pesos`,
+        wrong: ask === 'bajada' ? [`${m} mil pesos`, `${n + m} mil pesos`, '0 pesos'] : [`${n} mil pesos`, `${n + m} mil pesos`, `${m + 1} mil pesos`],
+        why: ask === 'bajada' ? `La recta parte en (0, ${n}): ese es el cobro fijo (n = ${n}).` : `Del km 0 al km 1 la recta sube de ${n} a ${n + m}: aumenta ${m} por cada km (la pendiente).` };
+    } }
+  ];
+  QUIZ_TEMPLATES.push(...CARD_TEMPLATES);
+
   const state = { m: 2, n: 1, em: 1.5, en: -3, k: 12, kx: 3, A: { x: 1, y: 3 }, B: { x: 3, y: 7 } };
   let quiz = null;
+  let cards = null;
   let nav = null;      // capítulos (chapters.js)
   let pending = null;  // estado guardado que llegó antes de abrir la lección
   let plots = {};
@@ -863,6 +1097,7 @@
   // ----- 13. Desafíos (preguntas al azar, historial, notas y progreso: lessons/quiz.js) -----
   function setupQuiz(root) {
     quiz = LessonQuiz(root.querySelector('#ln-quiz'), { id: 'lineal', templates: QUIZ_TEMPLATES, onChange: () => MathLessons.changed() });
+    cards = LessonCards(root.querySelector('#ln-cards'), { id: 'lineal', templates: CARD_TEMPLATES, onChange: () => MathLessons.changed() });
   }
 
   let rootEl = null;
@@ -909,7 +1144,7 @@
     goTo(chapter) { if (nav) nav.goTo(chapter); },
     getState() {
       if (!rootEl) return pending;
-      return { m: state.m, n: state.n, em: state.em, en: state.en, k: state.k, kx: state.kx, A: state.A, B: state.B, quiz: quiz ? quiz.getState() : null, nav: nav ? nav.getState() : null };
+      return { m: state.m, n: state.n, em: state.em, en: state.en, k: state.k, kx: state.kx, A: state.A, B: state.B, quiz: quiz ? quiz.getState() : null, cards: cards ? cards.getState() : null, nav: nav ? nav.getState() : null };
     },
     setState(s) {
       if (!s) return;
@@ -929,6 +1164,7 @@
       setupLab.update();
       setupInversa.update();
       if (quiz && s.quiz) quiz.setState(s.quiz);
+      if (cards && s.cards) cards.setState(s.cards);
       if (setupSlope.draw) setupSlope.draw();
       if (nav && s.nav) nav.setState(s.nav);
     },
